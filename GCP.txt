@@ -1,0 +1,4938 @@
+ip -s addr
+
+
+# Verify nginx binaries installed
+dpkg --get-selections | grep nginx
+apt list --installed | grep nginx
+
+Provide the start-script at VM instance level overrides the project level startup script metadata
+
+# Set Project
+gcloud config set project PROJECT_ID
+
+
+# Create VM Instance
+gcloud compute instances create demo3-vm-gcloud \
+  --zone=us-central1-a \
+  --machine-type=e2-micro \
+  --network-interface=subnet=default \
+  --tags=http-server \
+  --metadata-from-file=startup-script=webserver-install.sh 
+
+# List Compute Instances
+gcloud compute instances list   
+
+## Optional Commands - For reference
+# To list instances with their respective status and tags, run:
+gcloud compute instances list --format='table(name,status,tags.list())'
+
+# To list instances tagged with a specific tag, tag1, run:
+gcloud compute instances list --filter='tags:http-server'
+
+# Stop VM Instance
+gcloud compute instances stop demo3-vm-gcloud --zone=us-central1-a
+gcloud compute instances list --filter='name:demo3-vm-gcloud'
+
+# Start VM Instance
+gcloud compute instances start demo3-vm-gcloud --zone=us-central1-a
+gcloud compute instances list --filter='name:demo3-vm-gcloud'
+
+
+# Update VM: Enable deletion protection
+gcloud compute instances update demo3-vm-gcloud \
+    --zone=us-central1-a \
+    --deletion-protection
+
+# Delete VM
+gcloud compute instances delete demo3-vm-gcloud --zone=us-central1-a 
+
+## ERROR MESSAGE
+ERROR: (gcloud.compute.instances.delete) Could not fetch resource:
+ - Invalid resource usage: 'Resource cannot be deleted if it's protected against deletion. 
+
+# Update VM: Disable deletion protection
+gcloud compute instances update demo3-vm-gcloud \
+    --zone=us-central1-a \
+    --no-deletion-protection
+
+# Delete VM
+gcloud compute instances delete demo3-vm-gcloud --zone=us-central1-a 
+
+
+
+
+# Set Project
+gcloud config set project PROJECT_ID
+gcloud config set project gcplearn9
+
+# Create Instance Template
+gcloud compute instance-templates create demo4-it-v1 \
+  --machine-type=e2-micro \
+  --network-interface=network=default,network-tier=PREMIUM \
+  --instance-template-region=us-central1 \
+  --tags=http-server \
+  --metadata-from-file=startup-script=webserver-install.sh 
+
+
+# Create Machine Image
+gcloud compute machine-images create demo5-vm-machine-image-gcloud \
+  --source-instance=demo5-vm \
+  --source-instance-zone=us-central1-a \
+  --storage-location=us  
+
+# List Machine Images
+gcloud compute machine-images list  
+
+# Delete Machine Images
+gcloud compute machine-images delete demo5-vm-machine-image
+gcloud compute machine-images delete demo5-vm-machine-image-gcloud
+
+
+
+Create Spot VM Instance using gcloud
+# Set Project
+gcloud config set project PROJECT_ID
+gcloud config set project gcplearn9
+
+# Create VM Instance
+# --instance-termination-action: Options  STOP OR DELETE
+gcloud compute instances create demo6-vm-spot-gcloud \
+  --provisioning-model=SPOT \
+  --instance-termination-action=STOP \
+  --zone=us-central1-a \
+  --machine-type=e2-micro \
+  --network-interface=subnet=default \
+  --tags=http-server \
+  --metadata-from-file=startup-script=webserver-install.sh     
+
+# Access Application 
+http://<external-ip-of-vm>
+
+# Delete VM Instance
+gcloud compute instances delete demo6-vm-spot-gcloud --zone us-central1-a
+
+
+Request for GPU Quota
+o to IAM & Admin -> Quotas & System Limits
+
+o Go to IAM & Admin -> Quotas & System Limits
+o Go to Compute Engine API -> Search for GPUS_ALL_REGIONS
+o Select **GPU (all regions) -> EDIT QUOTA
+
+
+# List Sole-tenant node templates
+gcloud compute sole-tenancy node-templates list
+
+# List Sole-tenant node groups
+gcloud compute sole-tenancy node-groups list
+
+# Create a sole-tenant node template
+# https://cloud.google.com/compute/docs/nodes/provisioning-sole-tenant-vms#creating-a-sole-tenant-node-template
+gcloud compute sole-tenancy node-templates create TEMPLATE_NAME \
+  --node-type=NODE_TYPE \
+  [--region=REGION \]
+  [--node-affinity-labels=AFFINITY_LABELS \]
+  [--accelerator type=GPU_TYPE,count=GPU_COUNT \]
+  [--disk type=local-ssd,count=DISK_COUNT,size=DISK_SIZE \]
+  [--cpu-overcommit-type=CPU_OVERCOMMIT_TYPE]
+
+# Create a sole-tenant node group
+# https://cloud.google.com/compute/docs/nodes/provisioning-sole-tenant-vms#create_a_sole-tenant_node_group
+gcloud compute sole-tenancy node-groups create GROUP_NAME \
+  --node-template=TEMPLATE_NAME \
+  --target-size=TARGET_SIZE \
+  [--zone=ZONE \]
+  [--maintenance-policy=MAINTENANCE_POLICY \]
+  [--maintenance-window-start-time=START_TIME \]
+  [--autoscaler-mode=AUTOSCALER_MODE: \
+  --min-nodes=MIN_NODES \
+  --max-nodes=MAX_NODES]  
+
+# Provision a sole-tenant VM
+# https://cloud.google.com/compute/docs/nodes/provisioning-sole-tenant-vms  #provision_a_sole-tenant_vm
+
+gcloud compute instances create VM_NAME \
+  [--zone=ZONE \]
+  --image-family=IMAGE_FAMILY \
+  --image-project=IMAGE_PROJECT \
+  --node-group=GROUP_NAME \
+  --machine-type=MACHINE_TYPE \
+  [--maintenance-policy=MAINTENANCE_POLICY \]
+  [--accelerator type=GPU_TYPE,count=GPU_COUNT \]
+  [--local-ssd interface=SSD_INTERFACE \]
+  [--restart-on-failure]  
+
+
+ Install Ops Agent manually
+# Creat VM Instance
+gcloud compute instances create demo2-opsagent \
+  --zone=us-central1-a \
+  --machine-type=e2-micro \
+  --network-interface=subnet=default \
+  --tags=http-server \
+  --metadata-from-file=startup-script=webserver-install.sh 
+
+# Verify VM Metrics
+1. Go to Compute Engine -> VM Instances -> demo2-opsagent -> OBSERVABILITY Tab
+2. Click on CPU, PROCESS, MEMORY
+3. It shows the message "Requires Ops Agent"
+
+# Connect SSH to VM
+gcloud compute ssh --zone "us-central1-a" "demo2-opsagent" --project "gcplearn9"
+
+# Download Ops Agent
+curl -sSO https://dl.google.com/cloudagents/add-google-cloud-ops-agent-repo.sh
+
+# Install Ops Agent
+sudo bash add-google-cloud-ops-agent-repo.sh --also-install
+sudo apt list --installed | grep google-cloud-ops-agent
+
+# Verify Ops Agent Status
+sudo systemctl status google-cloud-ops-agent"*"
+
+# Restarting Agent (Optional)
+sudo service google-cloud-ops-agent restart
+
+## Additional Optional Commands
+# Upgrading Agent
+sudo bash add-google-cloud-ops-agent-repo.sh --also-install
+
+# Uninstalling the agent (For reference only)
+sudo bash add-google-cloud-ops-agent-repo.sh --uninstall
+sole node :node template: automatic scale
+
+
+Understand about Encryption Types
+Symmetric Key Encryption
+Asymmetric Key Encryption
+
+Create KMS Key ring and Keys
+# Create KMS Keyring - Regional
+gcloud kms keyrings create my-keyring2 --location us-central1
+
+# Create KMS Keyring - Global
+gcloud kms keyrings create my-keyring3 --location global
+
+# Create a symmetric encryption key with custom automatic rotation 
+gcloud kms keys create KEY_NAME \
+    --keyring KEY_RING \
+    --location LOCATION \
+    --purpose "encryption" \
+    --protection-level "software" \
+    --destroy-scheduled-duration SCHEDULED_FOR_PERMANENT_DESTRUCTION_AFTER_DAYS
+
+# Replace Values
+gcloud kms keys create my-symkey-2 \
+    --keyring my-keyring2 \
+    --location us-central1 \
+    --purpose "encryption" \
+    --protection-level "software" \
+    --destroy-scheduled-duration "2d"    
+
+# List Keys
+gcloud kms keys list --keyring my-keyring2 --location us-central1
+
+# Describe Key
+gcloud kms keys describe my-symkey-2 --keyring my-keyring2 --location us-central1
+
+
+# Create a Blank Disk
+gcloud compute disks create mydisk1 \
+    --project=gcplearn9 \
+    --type=pd-balanced \
+    --description=mydisk1 \
+    --size=15GB \
+    --zone=us-central1-a
+
+# Create a Blank Disk with KMS Key
+gcloud compute disks create mydisk1 \
+    --project=gcplearn9 \
+    --type=pd-balanced \
+    --description=mydisk1 \
+    --size=15GB \
+    --zone=us-central1-a \
+    --kms-key=projects/gcplearn9/locations/global/keyRings/my-keyring3/cryptoKeys/kalyankey1  
+
+
+List disks that are attached to your instance
+sdb is the device name for the new blank persistent disk.
+# Connect to VM instance using cloud shell
+gcloud compute ssh --zone "us-central1-a" "demo7-vm" --project "gcplearn9"
+
+# Use the symlink created for your attached disk to determine which device to format.
+ls -l /dev/disk/by-id/google-*
+
+## Sample Output
+dkalyanreddy@demo1-vm:~$ ls -l /dev/disk/by-id/google-*
+lrwxrwxrwx 1 root root  9 Mar 27 09:16 /dev/disk/by-id/google-demo1-vm -> ../../sda
+lrwxrwxrwx 1 root root 10 Mar 27 09:16 /dev/disk/by-id/google-demo1-vm-part1 -> ../../sda1
+lrwxrwxrwx 1 root root 11 Mar 27 09:16 /dev/disk/by-id/google-demo1-vm-part14 -> ../../sda14
+lrwxrwxrwx 1 root root 11 Mar 27 09:16 /dev/disk/by-id/google-demo1-vm-part15 -> ../../sda15
+lrwxrwxrwx 1 root root  9 Mar 27 09:16 /dev/disk/by-id/google-disk1-nonboot-app1 -> ../../sdb
+dkalyanreddy@demo1-vm:~$
+
+# Format disk using mkfs command
+sudo mkfs.ext4 -m 0 -E lazy_itable_init=0,lazy_journal_init=0,discard /dev/DEVICE_NAME
+sudo mkfs.ext4 -m 0 -E lazy_itable_init=0,lazy_journal_init=0,discard /dev/sdb
+
+# Create Mount Directory
+sudo mkdir -p /mnt/disks/MOUNT_DIR
+sudo mkdir -p /mnt/disks/myapp1
+
+# Mount Disk
+sudo mount -o discard,defaults /dev/DEVICE_NAME /mnt/disks/MOUNT_DIR
+sudo mount -o discard,defaults /dev/sdb /mnt/disks/myapp1
+
+# Enable Read Write permissions on disk
+sudo chmod a+w /mnt/disks/MOUNT_DIR
+sudo chmod a+w /mnt/disks/myapp1
+
+# Verify Mount Point
+df -h
+
+## Sample Output
+dkalyanreddy@demo7-vm:~$ df -h
+Filesystem      Size  Used Avail Use% Mounted on
+udev            478M     0  478M   0% /dev
+tmpfs            98M  388K   98M   1% /run
+/dev/sda1       9.7G  2.0G  7.2G  22% /
+tmpfs           488M     0  488M   0% /dev/shm
+tmpfs           5.0M     0  5.0M   0% /run/lock
+/dev/sda15      124M   11M  114M   9% /boot/efi
+tmpfs            98M     0   98M   0% /run/user/1000
+/dev/sdb         15G   24K   15G   1% /mnt/disks/myapp1
+
+
+# Create File in newly mouted disk
+echo "New disk attached" >> /mnt/disks/myapp1/newdisk.txt
+cat /mnt/disks/app1-disk/newdisk.txt
+Step-06: Configure automatic mounting on VM restart
+# Backup fstab
+sudo cp /etc/fstab /etc/fstab.backup
+
+# Use the blkid command to list the UUID for the disk.
+sudo blkid /dev/DEVICE_NAME
+sudo blkid /dev/sdb
+
+# Create Mountpoint entry and update in /etc/fstab
+UUID=UUID_VALUE /mnt/disks/MOUNT_DIR ext4 discard,defaults,MOUNT_OPTION 0 2
+UUID=88dfae9c-9c25-4e99-81a6-17825a5bd70b /mnt/disks/myapp1 ext4 discard,defaults,nofail 0 2
+
+# Make the mount point permanent by adding in /etc/fstab (if not after VM reboot it will not be available)
+sudo vi /etc/fstab
+UUID=88dfae9c-9c25-4e99-81a6-17825a5bd70b /mnt/disks/myapp1 ext4 discard,defaults,nofail 0 2
+[or]
+echo UUID=88dfae9c-9c25-4e99-81a6-17825a5bd70b /mnt/disks/myapp1 ext4 discard,defaults,nofail 0 2 | sudo tee -a /etc/fstab
+
+# Verify /etc/fstab
+cat /etc/fstab
+
+# Run mount -a to see if any errors
+sudo mount -a
+exit
+Step-07: Stop and Start VM to verify if new disk still attached to VM
+## Reboot VM
+# Stop VM Instance
+gcloud compute instances stop demo7-vm --zone=us-central1-a
+gcloud compute instances list --filter='name:demo7-vm'
+
+# Start VM Instance
+gcloud compute instances start demo7-vm --zone=us-central1-a
+gcloud compute instances list --filter='name:demo7-vm'
+
+# Connect to VM instance using cloud shell and Verify the new disk attached
+gcloud compute ssh --zone "us-central1-a" "demo7-vm" --project "gcplearn9"
+df -h
+cat /mnt/disks/myapp1/newdisk.txt
+echo "my new file 101" >> /mnt/disks/myapp1/mynewfile.txt
+ls /mnt/disks/myapp1/
+cat /mnt/disks/myapp1/mynewfile.txt
+exit
+Step-08: Clean-Up to Avoid Charges
+DONT DELETE THESE, WE WILL USE ion DEMO 02-03 later, just STOP THE VM
+# Stop VM Instance
+gcloud compute instances stop demo7-vm --zone=us-central1-a
+gcloud compute instances list --filter='name:demo7-vm'
+
+# Delete VM 
+gcloud compute instances delete demo7-vm --zone=us-central1-a
+gcloud compute instances list --filter='name:demo7-vm'
+
+# Delete Disk 
+gcloud compute disks list 
+gcloud compute disks delete mydisk1 --zone=us-central1-a
+gcloud compute disks list 
+
+
+
+
+
+Regional Persistence Disks
+
+
+# Create Regional Persistent Disk
+gcloud compute disks create regional-disk2 \
+    --project=gcplearn9 \
+    --type=pd-balanced \
+    --description=regional-disk2 \
+    --size=200GB \
+    --region=us-central1 \
+    --replica-zones=projects/gcplearn9/zones/us-central1-a,projects/gcplearn9/zones/us-central1-f
+emo7-vm if not stopped
+# Stop VM Instance
+gcloud compute instances stop demo7-vm --zone=us-central1-a
+gcloud compute instances list --filter='name:demo7-vm'
+Step-03: Resize Boot Disk demo1-vm
+Go to Compute Engine -> Storage -> Disks -> demo7-vm -> Edit
+Size: 10GB (Current Size)
+Size: 20GB (New Size)
+Click on SAVE
+Step-04: Resize Non-Boot Disk disk1-nonboot-app1
+Go to Compute Engine -> Storage -> Disks -> disk1-nonboot-app1 -> Edit
+Size: 15GB (Current Size)
+Size: 25GB (New Size)
+Click on SAVE
+Step-05: Start VM demo7-VM and Connect to VM using SSH and Verify Root Mount Size
+Go to Compute Engine -> VM Instances -> demo7-vm -> Actions -> Start
+# Start VM Instance
+gcloud compute instances start demo7-vm --zone=us-central1-a
+gcloud compute instances list --filter='name:demo7-vm'
+
+# Connect to VM instance using cloud shell 
+gcloud compute ssh --zone "us-central1-a" "demo7-vm" --project "gcplearn9"
+
+# Verify Root Mount Size 
+sudo df -Th
+
+dkalyanreddy@demo7-vm:~$ df -Th
+Filesystem     Type      Size  Used Avail Use% Mounted on
+udev           devtmpfs  478M     0  478M   0% /dev
+tmpfs          tmpfs      98M  392K   98M   1% /run
+/dev/sda1      ext4       20G  2.0G   17G  11% /  ----- ROOT MOUNT SIZE CHANGED to 40GB
+tmpfs          tmpfs     488M     0  488M   0% /dev/shm
+tmpfs          tmpfs     5.0M     0  5.0M   0% /run/lock
+/dev/sda15     vfat      124M   11M  114M   9% /boot/efi
+/dev/sdb       ext4       15G   28K   15G   1% /mnt/disks/myapp1 -- NONBOOT-DISK NOT CHANGED
+tmpfs          tmpfs      98M     0   98M   0% /run/user/1000
+dkalyanreddy@demo7-vm:~$ 
+In the above case, debian supported automatic root partition and file system resize, so automatically ROOT Partition size increased to from 10GB to 20GB
+If the Operating system you are using doesn't support this, you can follow steps in google documentation
+Step-06: Resize the Non-Boot Data disk
+# Connect to VM instance using cloud shell 
+gcloud compute ssh --zone "us-central1-a" "demo7-vm" --project "gcplearn9"
+
+# List Disks
+sudo df -Th
+
+# List Devices attached to VM
+sudo lsblk
+dkalyanreddy@demo7-vm:~$ sudo lsblk
+NAME    MAJ:MIN RM  SIZE RO TYPE MOUNTPOINT
+sda       8:0    0   20G  0 disk 
+├─sda1    8:1    0 19.9G  0 part /
+├─sda14   8:14   0    3M  0 part 
+└─sda15   8:15   0  124M  0 part /boot/efi
+sdb       8:16   0   25G  0 disk /mnt/disks/myapp1
+dkalyanreddy@demo7-vm:~$ 
+
+
+# If you are using ext4, use the resize2fs command to extend the file system:
+sudo resize2fs /dev/DEVICE_NAME
+sudo resize2fs /dev/sdb
+sudo df -h /dev/sdb
+sudo df -Th
+
+## SAMPLE OUTPUT
+dkalyanreddy@demo7-vm:~$ df -h /dev/sdb
+Filesystem      Size  Used Avail Use% Mounted on
+/dev/sdb         25G   28K   25G   1% /mnt/disks/myapp1
+dkalyanreddy@demo7-vm:~$ sudo df -Th
+Filesystem     Type      Size  Used Avail Use% Mounted on
+udev           devtmpfs  478M     0  478M   0% /dev
+tmpfs          tmpfs      98M  388K   98M   1% /run
+/dev/sda1      ext4       20G  2.0G   17G  11% /
+tmpfs          tmpfs     488M     0  488M   0% /dev/shm
+tmpfs          tmpfs     5.0M     0  5.0M   0% /run/lock
+/dev/sda15     vfat      124M   11M  114M   9% /boot/efi
+/dev/sdb       ext4       25G   28K   25G   1% /mnt/disks/myapp1
+tmpfs          tmpfs      98M     0   98M   0% /run/user/1000
+dkalyanreddy@demo7-vm:~$ 
+Step-07: Stop or Delete VM to avoid charges
+# Stop VM Instance
+gcloud compute instances stop demo7-vm --zone=us-central1-a
+gcloud compute instances list --filter='name:demo7-vm'
+
+# Delete VM 
+gcloud compute instances delete demo7-vm --zone=us-central1-a
+gcloud compute instances list --filter='name:demo7-vm'
+
+# Delete Disk 
+gcloud compute disks list 
+gcloud compute disks delete mydisk1 --zone=us-central1-a
+gcloud compute disks list 
+
+
+
+
+
+
+
+
+# Delete VM Instances
+gcloud compute instances delete vm1 --zone us-central1-a
+gcloud compute instances delete vm2 --zone us-central1-a
+
+# Delete Regional Persistent Disk
+gcloud compute disks delete regional-disk1 --region us-central1
+
+
+gcloud compute disks delete regional-disk2 --region us-central1
+
+
+Hyperdisk
+=========
+
+# Create Hyperdisk Balanced
+gcloud compute disks create hyperdisk2 \
+    --project=gcplearn9 \
+    --type=hyperdisk-balanced \
+    --description=hyperdisk1 \
+    --size=100GB \
+    --zone=us-central1-a \
+    --provisioned-iops=3600 \
+    --provisioned-throughput=290
+
+
+
+
+
+
+-new generation network block storage
+-diff b/w persistence disks and hyperdisk 
+persistent disk ( performance scales automatically with size and cpu)
+Hyperdisk: performance can be provided directly
+dedicated IOPs  or Dedicate Throughput etc
+
+-hyperdisk volume can be mounted to vm using NVMe or SCSI interface
+
+
+
+
+
+
+
+
+
+-attach, detach from vms life cycle not tied to vms
+data is persistent over vm reboots and deletions
+
+3 types:
+
+Hyperdisk Balanced: for web application we can use it
+
+Hyperdisk Extreme : performance critical application where extreme persistence disk is needed we can use this type ( high performance databases)
+
+
+Hyperdisk Throughput: let us flexibly provision capacity and throughput as needed for our scale-out workload
+use case: Hadoop,kafka,data drivefor cost-sensitive apps,scle-out anayticd.
+
+-only some machine type are supported in hyperisk thoughput
+
+limitation of hyperdisk
+======================
+-  we cannot create machine image for hyperdisk 
+extreme and for hyperdisk Throughput ,
+-  we cannot clone hyperdisk volume
+-  hyperdisk are zonal only ( we cant create hype disk for region)
+- we cant attach multiple vms in read-only mode to hyperdisk volume
+-its cant be used for boot disks
+
+
+COmpute Engine- Stoarge Pool
+=============================
+
+-primarily used for large-scale storage
+-pre-purchase the capacity , throughput and IOPS which you can the provision to our application need
+
+storage pool ( collection of capacity , throughput and IOPS)
+
+inside that pool we can take some storage 
+
+eg : storage pool 10TB, Provisioned IOP : 10000  Provisioned Throhput : 1024 
+
+then we can create hyperdisk 1 hyperdisk 2 so on ...
+hyperdik 1 have ca: 100gb provision iops: 3600, throughput:290
+
+hyperdik 2 have ca: 100gb provision iops: 3600, throughput:290
+.....
+
+
+Storage pool types:
+==================
+
+
+
+gcloud compute storage-pools create storage-pool-1 \
+  --project=gcplearn9 \
+  --provisioned-capacity=10240 \
+  --storage-pool-type=hyperdisk-balanced \
+  --zone=projects/gcplearn9/zones/us-central1-a \
+  --provisioned-iops=10000 \
+  --provisioned-throughput=1024
+
+
+
+Hyerdisk balanced 
+-We can  Specify capacity , throughput and IOPS)
+
+
+hyperdisk throughput:
+-we can specify capacity , throughput
+
+key features of storage pools:
+============================
+- what needed is used rest all is with storage 
+example if we need 5 gb from 100gb of hyperdisk1 then rest 95 gb is in pool
+ 95 gb ( t will be used somewhere else)is with storage pool it not wasted even if its all
+allocated to hypedisk1 so we can use what we need
+-data reduction: storage pool use various data reduction technology 
+to increase efficiency by compressing data .
+-Auto-grow Capacity : when storage pool reaches80 % of capacity
+then it will try to add automatically so tat it will remain below 80 %.
+
+When to us
+==========
+-migration from on-premise to cloud we dont know how much we need then we can use s
+storage pool.
+
+-underutilization of block storage
+-complex management ( manually disk managements of 
+1000s  is time consuming )that time also we can use.
+
+limitation of storage pool:
+=============================
+-its a zonal resource 
+- we can use hyperdisk storage pool with compute engine only
+- cloud sql cannot use storage pools
+- we can create hyperdisk storage pool of 1 PiB
+- we cant create regional disks in storage pool
+- we can create upto 1000 disks in storage pool
+- we cant clone create instance snapshot in storage pool
+- only new disks in the same project and zone can be created in a storage pool
+
+
+
+Google Compute Engine Storage - Images
+=====================================
+
+# Create Disk Image from a Disk
+gcloud compute images create demo8-vm1-disk-image-v1 \
+    --project=gcplearn9 \
+    --family=mynginx-apps \
+    --source-disk=demo8-vm1 \
+    --source-disk-zone=us-central1-a \
+    --storage-location=us
+
+# List Disk Images
+gcloud compute images list --filter='name:demo8-vm1-disk-image-v1'
+
+
+
+# Create VM Instance from a Disk Image
+gcloud compute instances create demo8-vm2-from-disk-image \
+    --project=gcplearn9 \
+    --zone=us-central1-a \
+    --machine-type=e2-micro \
+    --network-interface=subnet=default \
+    --tags=http-server \
+    --create-disk=image=projects/gcplearn9/global/images/demo8-vm1-disk-image-v1
+
+
+-An image is a replica of a disk that contains the applications and operating system needed to start a VM.
+You can create custom images or use public images pre-configured with Linux or Windows
+
+
+
+-Type of images in GCP GCE?
+  public or custom images
+
+ Image States:
+================
+- Active
+- Deprecated ( its deprecated we can create VM instances)
+- Obsolete ( No longer available for use)
+- Deleted (this images  r deleted )
+
+Google Compute Engine Storage - Persistence Disk Snapshots
+===========================================================
+
+Y this is required ?
+
+- TO take backup of persistence disk (both zonal and regional)
+-we can take snapshot from disk even while they r attached to VM in running state
+-it can be regional or zonal
+-its a global resource so we can restore data to a new disk or instance within same project
+-taking snapshot during non-business hrs ( once or twice we can take )
+
+-snapshot are incremental( we dont lose data by deleting older snapshots 
+-delete older snapshots by configuring deletion rule 
+
+Advantages to use incremental snapshot
+======================================
+- to avoid billing you for redundant data
+-to minimize use of storage space
+-to decrease snapshot creation latency
+to ensure reliability of snapshot history 
+
+
+Google Compute Engine Storage - Local SSD
+============================================================
+
+# Create VM Instance with local-ssd disk
+gcloud compute instances create demo9-vm-localssd \
+    --project=gcplearn9 \
+    --zone=us-central1-a \
+    --machine-type=n2-standard-2 \
+    --network-interface=subnet=default \
+    --local-ssd-recovery-timeout=1 \
+    --tags=http-server \
+    --local-ssd=interface=NVME 
+
+ 
+diff b/w local ssds and persistence disks
+
+ssds: -(solid state drives)
+- Ephemeral storage( temporary storage)
+- Automatically encrypted
+- only few machines types supports 
+- 10-100 X better compare to 10 x(performance)
+- ties only one VM
+- physically attached to host servers of vms
+- disk  snapshot not supported
+
+persistence disks:
+- permanent storage
+- Google encrypt the keys by GMEK ( google managed encrypt Key)
+CMEK ( customer managed google keys)
+CSEK ( Customer supplied google keys)
+- disk snapshot supported
+- attached as network drive
+- can attach  /detach from one vm to other vm
+- performance good
+
+Compute Engine - Instance Groups
+=========================================
+
+-management of VM is difficult for many instances so we create groups for diff diff actions( creation, deletion etc)
+
+-Types of Instance Groups
+unmanaged Instance Groups
+Managed Instance Groups - Stateless
+Managed Instance Groups - Stateful
+
+Managed Instance Group (MIG)
+
+- we can create zonal as well as Regional MIG
+
+Unmanaged Instance Groups
+==========================
+
+-non-Identical VMs can be part of this group(e2-small or e2-micro)
+-support load balancing
+-doesn't support autoscaling, auto healing, auto-updating and multi-zone deployments
+
+-instance template not required
+-not recommended unless we want to maintain non-identical vms in a group or maintain vms ourselves
+
+
+Managed Instance Groups(MIG) -Stateless
+========================================
+-Identical VMs created using Instance Template
+- All Vm Instance in this group will be of same instance type( e2-small)
+-Instance Template is mandatory
+-99 % we use this stateless MIG
+
+Feature
+=========
+
+Load Balancing
+Multi-zone deployments
+autoscaling
+auto-healing( health checks)
+auto-updating
+
+
+Compute Engine - Instance Group Autoscaling
+============================================
+
+-MIG maintain configuration number of instance at any point
+
+Compute Engine - Instance Group Autos-Healing
+============================================
+- when one instance application  is not working then it will automatically (MIG) heal that application.
+- if application freeze, crashed that time health check comes in to picture and do health check on application which is running on instances.
+
+
+Compute Engine - Instance Group Autos-Updating
+==============================================
+
+- Help to update easily and safely update new version to vm instances in MIG
+- Rolling update one after one updated( create first instance template and then update MIG to new instance template.)
+
+Instance template > MIG > load balancing
+ 
+
+when it will take place?
+
+-PROACTIVE : start update immediately in MIG
+-opportunistic(selective) : update vms in  MIG when they r replaced, refreshed, restarted except auto-healing case.
+
+Instance Group Restart/Replaces Vms using MIG
+
+Compute Engine - Instance Group Canary Updates
+==============================================
+
+to test the version on group of instance before releasing it across all instance.
+
+new instance temp > some amount of traffic routed > t >tested new version > ( specify sec template) specifying target size then it deployed on mentioned traffic vm mentioned in template
+
+
+
+Managed Instance Group - Stateful
+=================================
+
+stateful mean : save state
+- it doesn't support auto-scaling
+
+- preserve each instance unique state, persistent disk, instance metadata, customizable instance name
+
+
+support
+==========
+-LB
+-multi zone deployment
+-auto-healing
+-auto-update
+-disk and metadata preservation.
+
+used For
+=======
+-DB
+-Legacy monolithic application
+-long running batches
+
+
+deletion rule ( for disk)
+
+keep disk 
+
+- delete disk  in stateful disk even if select delete disk then also it will preserve disk.
+
+
+
+high availability in MIG by choosing availability policy
+
+
+Compute Engine : SSH Keys
+=========================
+
+window vms : uses username password
+Linux vms : uses ssh authentications
+
+
+Linux Vms key-based ssh authentication : 2 types
+
+1. Metadata Managed
+2. OS Login
+
+OS login is best way or recommended way
+
+option 1 : GCP console SSH button
+==================================
+
+-SSH to Vm instance using web-based or browser based
+-it generate Ephemeral SSH keys to SSH to VM
+-your private SSH keys is stored in your browser session
+-google doesn't have access to your private key
+
+Option 2 : Gcloud Cli
+=====================
+
+-compute engine create username and persistent SSH key pair
+-we can reuse the same ssh key pair for future interaction using gcloud cli
+
+option 3 : SSH Key generation from local
+==========================================
+
+-using ssh-keygen we can generate 
+-upload public ssh key to project level 
+ meta data or instance level ssh keys
+-using the private ssh key on our desktop we can ssh to Linux vm using third-party tolls like putty ,ssh command etc
+
+option 4 : SSH Authentication using Login Managed
+=================================================
+
+OS login Managed
+
+-set the below key pair in compute engine metadata
+
+key : enable login
+value: TRUE
+
+- we can access the VM instance using
+SSH Button using browser
+using gcloud ssh command
+- third party tool will not work like putty and all for os login
+
+Option 5 : Customized Keys - OS login managed
+==============================================
+
+-if we want to use third party tool then we use this method by option 4 we cannot use putty and all
+
+Y we need to use os login method over metadata managed for providing Linux vm access
+=====================================================================================
+
+- Os login allow ssh access w/o manually managing ssh keys
+-os login is highly recommended options for managing access to Linux vms, if we need to deal with huge no of users across multiple instances and google projects
+-os level support 2 step verification msg, phone, call ,phone prompt and security keys
+-ability to import Linux user accounts from on-premise AD or LDAP
+-os lofin can be used in comination with super advanced use cases like IAM organization ( manage users, group and centrally control all of your organization projects resources)
+
+can we separate user and admin access to Linux
+-yes using roles
+
+what roles user need to have for using OS login SSH authentication
+-for normal user : compute.oslogin
+-for admin user : compute.osAdminLogin
+
+NOTE : all users who added in metadata of vms have sudo access to vms
+
+Google Serverless Cloud Run
+==========================
+
+-serverless container platform
+-fully controlled by google cloud
+-use to run containers directly
+-no manual infrastructure management required
+-no visibility for vm insatnces
+
+- any lang, any binary can be run using cloud run
+
+-fully integrated with many services of google cloud
+to build features eg ( cloud sql,cloud build,cloud loggin, cloud monitoring, firebase, cloud load balancing, cloud memory store, secret manager, vpc, private n/w, cloud task)
+
+how to run code in cloud run
+===========================
+1. cloud run services :
+Deploy/Run code that responds to web requests or events
+eg: website ,webapplications
+apis and microservies
+streaming data
+
+2. cloud run jobs :
+
+-to execute jobs / task on containers
+-quits when the work is done
+-in shorts , our containers will execute jobs and tuns to completion
+
+Example :db migration, schedule jobs, parallel processing the task
+
+
+Cloud run - Key Features
+=======================
+Create Google Cloud Run Service
+# gcloud Project Settings
+gcloud config list
+PROJECT_ID=[YOUR-PROJECT-ID]
+PROJECT_ID=kdaida123
+REGION=us-central1
+gcloud config set core/project $PROJECT_ID
+gcloud config set run/region $REGION
+gcloud config list
+
+# Help
+gcloud run services --help
+gcloud run deploy --help
+
+# List Cloud Run Services
+gcloud run services list
+
+# Create Google Cloud Run Service
+gcloud run deploy myservice102 \
+--image=stacksimplify/google-cloud-run:v1 \
+--allow-unauthenticated \
+--port=80 
+
+# List Cloud Run Services
+gcloud run services list
+
+# Describe Cloud Run Service
+gcloud run services describe myservice102 
+Step-11: gcloud: List and Describe Revisions
+# Help 
+gcloud run revisions --help
+
+# List Revisions
+gcloud run revisions list
+
+# Describe Revision
+gcloud run revisions describe <Revision-Name> 
+gcloud run revisions describe myservice102-00001-2rk 
+Step-12: gcloud: Update Application
+# Update Application 
+gcloud run services update
+gcloud run services update --help 
+
+# Update Application 
+gcloud run services update myservice102 --image=stacksimplify/google-cloud-run:v2
+
+# List Revisions
+gcloud run revisions list 
+
+# Describe Revision
+gcloud run revisions describe <Revision-Name> 
+gcloud run revisions describe myservice102-00001-2rk 
+Step-13: gcloud: Update Traffic
+# Help
+gcloud run services update-traffic --help
+
+# List Revisions
+gcloud run revisions list 
+
+# Set Tags (Add Revision URLs)
+gcloud run services update-traffic myservice102 \
+--set-tags=myappv1=myservice102-00001-2rk,myappv2=myservice102-00002-xgl 
+
+# Update Traffic - V1-50%, V2-50%
+gcloud run services update-traffic myservice102 \
+--to-revisions=myservice102-00001-2rk=50,myservice102-00002-xgl=50 
+
+## 1. You can also refer to the current or future LATEST revision in --to-revisions by the string "LATEST". 
+## 2. To set 10% of traffic to always float to the latest revision:
+gcloud run services update-traffic myservice102 \
+--to-revisions=myservice102-00001-2rk=100,myservice102-00002-xgl=0 
+gcloud run services update-traffic myservice102 --to-revisions=LATEST=10 
+
+# To assign 100% of traffic to the current or future LATEST revision run
+gcloud run services update-traffic myservice102 --to-latest 
+Step-14: gcloud: Delete Cloud Run Service
+# List Cloud Run Services
+gcloud run services list 
+
+# Delete Cloud Run Service
+gcloud run services delete myservice102 
+gcloud run services delete myservice1
+
+
+ docker hub/google artifact registry  > cloud run service  attached with artifact registry  > inside cloud run > 2 containers created ? attached with load balancers
+
+
+-unique http end point for every service
+-private and public services
+- build in traffic management
+-fast request-based auto scaling
+-pay-per-use pricing
+
+
+ Request based :
+===============
+ if an instance is not processing  then cpu is not allocated and not charged 
+
+
+Instance- based :  (CPU is always allocated)
+===============
+
+charged for entire lifetime of instance and  CPU is always allocated so no per request fee.
+
+
+SLO ( service level objectives)
+
+Y autoscaling is from 0 to 1000
+=================================
+
+ if no request then vm will be 0 that y
+
+Ingress ( network)
+-----------------
+
+Public service
+-allow direct access from internet
+
+private service
+-allow traffic from vpc
+-allow traffic from external
+-allow traffic from load balancers
+
+authentication
+=============
+
+allow un-authenticated access ( public access)
+
+required authentication using cloud identity aware 
+proxy
+
+
+CLoud Run - Jobs
+================
+
+-Cloud run Jobs execute task 
+-task can be one or multiple
+-one task will take long duration ( single jobs)
+-so we can create multiple task and achieved same thing in shorter duration.( Array jobs)
+
+when to use it :
+===============
+
+script or tools : run db migration
+array jobs : when parallelized process needed 
+scheduled jobs : run script every day at specified time
+
+
+Google Cloud Functions( serverless)
+===================================
+
+- Function as a service
+-  serverless
+- multiple programming language are supported
+- certain part of code need to be executed when certain even occurs
+
+Example : file uploaded to cloud storage bucket and certain part of code u need to execute
+
+- when http url is invoked
+- when a msg is published from cloud pub/sub service
+
+CLoud Function - 1st Gen vs 2nd gen
+=================================
+
+-2nd gen with Eventarc
+-time out is more in 2nd gen for http ( 60 min) in first gen it is 9 min
+-8 vcpu in 2nd gen, 32 gb max memory have option to select cpu
+-max concurrence instance
+- traffic split is possible in 2nd gen
+
+CLOud VPC
+==========
+
+
+- cloud virtual private n/w
+- its a global resource( not zonal not regional)
+- vpc resources like routes and firewall are also global
+'
+
+Isolation 
+==========
+-its create logically isolated n/w
+-we can create instances vms in VPC
+-vpc - vpc blocking no communication
+
+- subnet is regional resources
+region and subnet we have to provide inside vpc
+-atleast one subnet we have to define inside vpc
+
+Modes of VPC
+===========
+
+by default when we create project VPC default VPC created.
+
+Auto mode VPC n/w
+=================
+-auto range IP addr selected in this mode
+-subnet created automatically
+- only support IPv4 addr  doesn't support IPv6
+-if new region added then automatically it will create new subnet for it
+
+
+
+Custom mode VPC n/w
+===================
+-we need to create VPC
+-we can define our desired ip add
+-Highly recommended
+-it support IPv4 and IPv6 ( dual stack)
+
+
+Google Cloud Networks( Firewall)
+===============================
+-VPC Firewall Rules :
+=====================
+ allow or deny connection to or from VM instance in our VPC n/w
+
+-Firewall Rule :
+==============
+can be applied to Vms in a single VPC network
+
+Firewall Policies :
+=================
+can be applied to vm in multiple VPC n/w
+
+Firewall rules type :
+===================
+
+Ingress Rules(Inbound: from external world to vm)
+Egress Rules(outbound: from  vm to external workld)
+
+within one single rule we cannot define both ingress and egress.
+
+Firewall rules can be applied b/w other n/w to vm instances
+
+between individual vm instances in the same vpc n/w
+
+FIrewall Rules components
+========================
+-protocol and ports
+-Enforcement Status
+-source
+-target
+-destination
+-priority ( 0 to 65535 : lower no mean high priority
+by default it has 1000 priority)
+-direction of traffic
+
+Action on match in firewall gcp
+============================
+allow : allow traffic
+deny : block traffic
+
+Target in Firewall GCP(where that firewall rules apply)
+====================
+
+if we dont select it will take default all instances in the n/w 
+
+
+3 types we have in this
+
+1. all instance 
+2. specified with tags
+3. specified service account
+4. source account
+
+
+source in firewall
+==================
+
+- primarily used for ingress rule 1 percent we can use it for egress rule.
+-it coming from where 
+- if we dont define then default is 0.0.0.0
+-we can also create source tag inside source ( for filtering) source tag is active when ipv4 is active 
+
+Destination : 
+-egress rule
+-by default ip if we dont select it then it is 0.0.0.
+
+
+protocol and ports:
+======================
+
+
+by using this we can specify which protocal and port we need to communicate then we can add that on firewall
+
+Enforcement status :
+====================
+enable or disable
+
+
+Implied Rules:
+==================
+
+
+Implied Egress rule:
+====================
+-by default outbound is open
+action : allow
+destination : 0.0.0.0ipv4  ,  ::0 ipv6
+priority : 65535(least )
+
+-by default internet access using vm is public IP addr or cloud NAT is allowed( if no other explicitly block it )
+
+- we can define higher priority rule to restrict outbound access
+
+
+Implied Ingress rule:
+===================
+-by default inbound blocked( Deny ) 
+action : deny
+destination : 0.0.0.0/0
+Priority : 65536
+
+
+Best practices for VPC
+============================
+
+-restrict all traffic and allow specific traffic only
+-limit firewall rule to protocol and port 
+
+
+- allow rules to  that specific vm by service account of the vms
+
+- try to create rule in IP range so that tracking will be easy in long run and its compliance
+
+Enable firewall rule log
+
+
+IP Addresses
+=============
+
+External IP : public ip
+============================
+
+- anyone can access from internet
+ipv4  can be provided by us or by google
+ipv6 only assigned by google
+-primarily used by vm instances and load balancers
+can we created as regional or global resource
+
+-regional ext ip can be premium or standard
+n/w tiers used by vms,external passthrough n/w ,load balaners
+-used by NAT and cloud VPN
+
+-global ip can use premium network tiers(google high quality n/w backbone)its used for global external application load balancer and global external proxy n/w load balancers
+
+
+
+internal IP : private ip
+=======================
+
+- private Ip(local to vpn network)
+-not accessible from net
+- we can access it with in vpc n/w, from other vpc n/w using VPC peering
+-from on-premise n/w using cloud vpn or clod interconnect
+
+its always uses premium n/w tier
+
+Regional Internal Ip addresses
+===========================
+
+static internal IP add : used by subnet, internal application like LB, passthrough n/w load balancers
+
+Global Internal IP addresses
+==========================
+private service connect endpoint for google apis
+
+we cannot reserve global static IP add
+
+gcloud compute addresses create myexternalip1 --region=us-central1
+
+
+
+
+Ephemeral IP : this IP doesn't persist beyond the life of the resource
+
+Google Cloud automatically assign the resource to that ephemeral IP
+
+ephemeral IP : is released if we stop or delete the resource
+
+Static IP : reserved IP and we have to explicitly release that Ip
+
+load balancer DNS registry use static ip
+
+
+
+
+
+gcloud compute instances create myvm7-static-ips \
+    --zone=us-central1-a \
+    --machine-type=e2-micro \
+    --network-interface=subnet=mysubnet1,address=35.239.28.181,private-network-ip=10.225.0.10 \
+    --metadata-from-file=startup-script=nginx-webserver.sh
+
+
+Cloud NAT
+========
+
+- when external ip is not provided then private vm connect to internet using cloud NAT( which internal uses cloud route)
+
+- not only to internet other vpc also we can connect
+
+- instance in private subnet connect to resources outside vpc
+
+- it provide connection to GKE cluster
+- cloud run
+- cloud function
+- app engine standard
+- compute engines
+
+2 type of cloud NAT
+===================
+-private NAT
+============
+-private to private translation b/w cloud n/w
+
+its help to perform NAT b/w multiple VPC n/w using n/w connectivity center
+
+- if subnets are overlapping b/w 2 diff vpc then connectivity will not allowed
+
+
+-public NAT
+==========
+
+Google cloud resources which do not have external Ip can communicate using it
+
+the VM,s which shared IP addr to connect to internet
+
+its does not rely on proxy vms
+
+instead a public NAT gateway allocates a set of External IP add and source ports to each vm that uses the gateway to create outbound connection to internet
+
+
+
+
+NAT ) n/w access translations) proxy stop request from Vm to internet( no direct flow from vm to intenet in this case)
+
+
+Benefits
+==========
+
+-security: no of external ip for vm decressed
+-availability : nat is a distributed.software-defined managed service
+-scalability- automatic scales the no of NAT ip addresses
+
+
+Cloud NAT is region and VPC specific
+
+
+
+
+Google Cloud VPC(private google access(PGA)) feature
+===================================================
+
+-its a subnet level setting
+- if its on and external ip is not provided then we can communicate to other google cloud resource like api send services
+-but it that is off and no external ip is provided then we cannot connect to google api
+
+Google cloud VPC - Network Peering
+==================================
+
+connects two vpc n/w 
+
+when 2 vm in diff vpc with diff subnet want to communicate then we hav to make vpc peering else they wil not communicate
+
+vm1 > zone > subnet1 > region > vpc1
+
+
+vm2 > zone > subnet2 > region > vpc2
+
+then we have to make peering from vp1 to vpc2 again one more peering needed from vp2 to vpc1
+
+peering can we done (peered VPC n/w can be in)
+
+- with in same project we have 2 vpc
+- with diff project we have 2 diff vpc of same organization
+- diff project of diff organization
+- it provide low latency using google cloud n/w so low latency
+
+- we cant connect 2 auto-mode vpc , so we cannot use peering in this bcoz cidr blocks are overlapping in auto-mode vpc 
+
+-auto-mode vpc generate ip in every zone that y we cannot use bcoz of overlapping ips
+- ensure 2 vpc cidr block doesn't overlap
+-legacy n/w doesn't support this peering
+-tags (network tags )and service account not usable here
+- NO compute engine DNS
+-GKE is usable only by enabling IP Aliases or
+ custom routes.
+-Load balancing doesn't support having load balancer frontends and backend in diff vpc
+
+
+
+its work with
+==============
+
+Compute engine, GKE,app engine flexible env,published saas,product from cloud markets
+
+
+
+Shared VPC
+===========
+
+-one VPC can be shared by multiple project
+-its can be created with google organizational account(no free acoount)
+-host project where vpc n/w is created
+-service project that use created vpc n/w is called service project 
+-one project cannot be both ( host and service at a time)
+
+shared n/w handled by shared vpc admin and service project admin
+
+security admin takes care( ssl cert and firewall )(compute.securityadmin)
+network admin take care of network with in shared vpc n/w(compute.networkadmin)
+
+
+
+CLoud Domain
+=============
+
+-used for domain registration and management
+-bill for purchase /renewing domains
+-automatic renewal of registry domains
+-support DNSSEC which protect domain from spoofing and cache poisoning attacks
+-tightly integrated with DNS(Google cloud DNS) for creating and managing DNS
+
+
+CLOUD DNS
+=========
+
+-High Performance, resilient , global Domain name system
+- its translates request for domain name to IP addr
+
+-Container- native cloud DNS
+============================
+
+-integrated with GKE
+-provides in-cluster service DNS resolution
+-provide high-throughput, scalable DNS resolution for every GKE node
+
+DNS peering
+============
+
+-sharing DNS data
+-ALL or a portion of DNS namespace can be configured to be sent from one n/w to another
+-will respect all dns configuration defiend in peered n/w
+
+DNS forwarding
+=============
+
+for hybride-cloud architecture
+
+forward DNS cloud to in premise dns 
+
+
+Cloud LB
+==========
+
+-user traffic distributed in diff multiple instance 
+-high availability
+-we can load balance across regions
+-we can load balance across zones in region
+-autoscaling
+-scales as traffic grows
+-zero to full throttle
+
+anycast IP : use to nearest available region (low latency)
+
+-cross-regional load balancing in caseof regional failure
+
+- health vm get all traffic , unhealth vm is kept out so that customer doesn't face issue
+
+types
+=====
+1.application LB ( uses http and https uses application layer 7 from OSI model)
+2, n/w LB ( uses TCP and uses Transport layer 4 from OSI model)
+3 passthrough LB  (TCP ,UDP,ICMP .....) 
+
+-passthrough LB its only regional we cannot create global passthrough LB
+-in this passthrough  request come from web client/ internal client it will passthrough from TCP LB
+it will reach to servers(gke or CE) but response will not travel again through this path , response will be send directly from server to client.
+
+4 proxy LB of type tcp proxy
+
+
+What does connection draining do?
+Connection draining is a process that ensures that existing, in-progress requests are given time to complete when a VM is removed from an instance group or when an endpoint is removed from network endpoint groups (NEGs) that are zonal in scope.
+
+
+
+
+http port 80
+https port 443
+tcp (network protocol)
+
+
+ROuting rules in LB
+===================
+
+path based routing
+=================
+app1: /app1 > app1vm
+app2 : /app2 > app2vm
+
+host based routing
+==================
+App1 > app1.stacksimplify.com (host name) > app1vm
+App2 > aap2.stacksimplify.com  (host name) > app2vm
+
+we can rewrite both (path rewrite or host rewrite)
+
+we can add and remove response headers
+
+
+network ( VPC)
+network-interface (subnet)
+
+gcloud compute networks subnets create 
+gcloud compute addresses create ip-add 
+
+gcloud compute firewall-rules create vpc3-custom-allow-ssh \
+  --network=vpc3-custom \
+  --description=Allows\ TCP\ connections\ from\ any\ source\ to\ any\ instance\ on\ the\ network\ using\ port\ 22. \
+  --direction=INGRESS \
+  --priority=65534 \
+  --source-ranges=0.0.0.0/0 \
+  --action=ALLOW \
+  --rules=tcp:22 
+
+
+
+gcloud compute health-checks create http global-http-health-check --port 80
+
+
+gcloud compute instance-templates create it-lbdemo-us-central1 \
+   --region=us-central1 \
+   --network=vpc3-custom \
+   --subnet=us-central1-subnet \
+   --machine-type=e2-micro \
+   --metadata-from-file=startup-script=nginx-webserver.sh
+
+gcloud compute instance-groups set-named-ports mig1-us-central1 \
+    --named-ports webserver80:80 \
+    --region us-central1
+
+gcloud compute networks create vpc3-custom --subnet-mode=custom --bgp-routing-mode=global
+
+
+
+TCP  = port 80
+SSL = 443 ( openssl genrsa )
+create private key 
+
+
+
+
+
+
+
+
+
+
+GKE clusters:
+==============
+
+
+cluster modes and type
+
+
+GKE standard  > zonal or regional > public cluster > and private clusters > GKE cluster windows node pools for windows workload and GKE Alpha cluster 
+
+GKE Autopilot > regional only  > public cluster and private clusters >  GKE cluster windows node pools for windows workload and GKE Alpha cluster
+
+diff in standard and autopilot
+===============================
+
+-GKE control plane > in both case it is managed by GKE
+ (nodes worker nodes are managed by other team in standard but in autopilot it is managed by GKE)
+-nodes and pools ( created and managed by us (you) in standard and its managed by GKE in Autopilot cluster
+-YOu manually provision additional resources in standard GKE dynamically provision resources in autopilot
+-pay per nodes in standard but in autopilot is pay per pod .
+-standard is available for both zone and region but autopilot is regional only
+
+
+
+
+creation of cluster
+===================
+
+
+gcloud container clusters create "standard-public-cluster-1" \
+  --machine-type "e2-micro" \
+  --disk-size "20" \
+  --spot \
+  --num-nodes "1" \
+  --region "us-central1"
+
+
+
+connect to cluster with command
+============================
+
+gcloud container cluster get-credentials standard-pulic-cluster-1 ( cluster name)
+
+if we get external ip in nodes then it is created in public cluster
+
+
+Kubernetes POD
+================
+
+-deploy application in containers
+
+-Kubernetes doesn't deploy container directly it encapsulated in Kubernetes object name POD
+- a pod is a single instance of application
+- smallest object of Kubernetes
+-we cannot have a same kind container in same pod serving same purpose is not possible
+- we can have multiple container in single pod but of different type
+
+-Example 
+=========
+Data puller : data required by main container
+
+Data pusher : push data by collecting from main containers (logs)
+
+Proxies : write static data to html file using helper containers and read using main containers
+
+in this multiple container in single pod communication is very easy
+
+- as they share same network
+- also they share same storage
+
+
+Kubernetes Services
+===================
+
+
+cluster IP : 
+==========
+
+service internal K8s cluster
+cluster IP service port with which we can access our application
+target port : container port 
+
+
+Nodeport :
+=========
+ internet + internal we can expose our application to outer world ( doesn't load balance so some pod will sit idel and some work hard )
+
+loadbalancer :
+==============
+ service (internet + internal)
+
+
+ingress service : 
+===============
+( internet + internal)
+
+POD > K8s service with target port and clusterip service port > cloud load balancer >cloud externalIP > user
+
+NOTE : cloud load balancer >cloud externalIP  automatically created by kubernets when we create K8s service
+
+if our serviceport is diff then container port then we can use target port option
+
+use expose for creating service
+
+# Get Pod Name
+kubectl get po
+
+# Dump Pod logs
+kubectl logs <pod-name>
+kubectl logs my-first-pod
+
+# Stream pod logs with -f option and access application to see logs
+kubectl logs <pod-name>
+kubectl logs -f my-first-pod
+Important Notes
+Refer below link and search for Interacting with running Pods for additional log options
+Troubleshooting skills are very important. So please go through all logging options available and master them.
+Reference: https://kubernetes.io/docs/reference/kubectl/cheatsheet/
+Step-06-02: Connect to a Container in POD and execute command
+# Connect to Nginx Container in a POD
+kubectl exec -it <pod-name> -- /bin/bash
+kubectl exec -it my-first-pod -- /bin/bash
+
+# Execute some commands in Nginx container
+ls
+cd /usr/share/nginx/html
+cat index.html
+exit
+Step-06-03: Running individual commands in a Container
+# Template
+kubectl exec -it <pod-name> -- <COMMAND>
+
+# Sample Commands
+kubectl exec -it my-first-pod -- env
+kubectl exec -it my-first-pod -- ls
+kubectl exec -it my-first-pod -- cat /usr/share/nginx/html/index.html
+Step-07: Get YAML Output of Pod & Service
+Get YAML Output
+# Get pod definition YAML output
+kubectl get pod my-first-pod -o yaml   
+
+# Get service definition YAML output
+kubectl get service my-first-service -o yaml   
+Step-08: Clean-Up
+# Get all Objects in default namespace
+kubectl get all
+
+# Delete Services
+kubectl delete svc my-first-service
+
+# Delete Pod
+kubectl delete pod my-first-pod
+
+# Get all Objects in default namespace
+kubectl get all
+
+# Change Directory
+cd kube-manifests
+
+# Create Pod
+kubectl create -f 01-pod-definition.yaml
+[or]
+kubectl apply -f 01-pod-definition.yaml
+
+# List Pods
+kubectl get pods
+
+kubectl delete -f 02-pod-LoadBalancer-service.yaml -f 01-pod-definition.yaml 
+
+
+
+Kubernetes Replicaset:
+====================
+
+-ReplicaSet : maintain pods (stable set pf replica pods running at given time), high availability
+
+-LB : to avoid overload of pod  its ue in LB also
+(automatically provide by k8s out of the box using services)
+
+-Labels and selector are the key items which ties all 3 together 
+
+
+Kubernetes services are plan TCP network load balancer, if we want to use other features like http , https then we have to use ingress service(instead of k8s service)
+
+Scaling
+=======
+
+scaling : when load increased for existing pods it will scale up the application
+
+this is seamless and super quick
+
+apiVersion: apps/v1
+kind: ReplicaSet
+metadata:
+  name: my-helloworld-rs
+  labels:
+    app: my-helloworld
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: my-helloworld
+  template:
+    metadata:
+      labels:
+        app: my-helloworld
+    spec:
+      containers:
+      - name: my-helloworld-app
+        image: us-docker.pkg.dev/google-samples/containers/gke/hello-app:1.0
+        ports: 
+          - containerPort: 8080 
+
+
+# List ReplicaSets
+kubectl get replicaset
+kubectl get rs
+Step-02-03: Describe ReplicaSet
+Describe the newly created ReplicaSet
+# Describe ReplicaSet
+kubectl describe rs/<replicaset-name>
+
+kubectl describe rs/my-helloworld-rs
+[or]
+kubectl describe rs my-helloworld-rs
+Step-02-04: List of Pods
+Get list of Pods
+# Get list of Pods
+kubectl get pods
+kubectl describe pod <pod-name>
+
+# Get list of Pods with Pod IP and Node in which it is running
+kubectl get pods -o wide
+Step-03: Expose ReplicaSet as a Service
+Expose ReplicaSet with a service (Load Balancer Service) to access the application externally (from internet)
+# Expose ReplicaSet as a Service
+kubectl expose rs <ReplicaSet-Name>  --type=LoadBalancer --port=80 --target-port=8080 --name=<Service-Name-To-Be-Created>
+kubectl expose rs my-helloworld-rs  --type=LoadBalancer --port=80 --target-port=8080 --name=my-helloworld-rs-service
+
+# List Services
+kubectl get service
+kubectl get svc
+
+Update the ReplicaSet
+# Apply latest changes to ReplicaSet
+kubectl apply -f replicaset-demo.yml
+
+# Verify if new pods got created
+kubectl get pods -o wide
+
+# Using Imperative way (Scale-out)
+kubectl scale --replicas=7 replicaset my-helloworld-rs
+
+# Using Imperative way (Scale-in)
+kubectl scale --replicas=2 replicaset my-helloworld-rs
+Edit ReplicaSet
+# Edit ReplicaSet
+kubectl edit replicaset my-helloworld-rs
+Change "replicas: 2" to "replicas:7"
+Save it
+
+# Verify Pods
+kubectl get pods
+Step-06: Delete ReplicaSet & Service
+Step-06-01: Delete ReplicaSet
+# Delete ReplicaSet
+kubectl delete rs <ReplicaSet-Name>
+
+# Sample Commands
+kubectl delete rs/my-helloworld-rs
+[or]
+kubectl delete rs my-helloworld-rs
+
+# Verify if ReplicaSet got deleted
+kubectl get rs
+Step-06-02: Delete Service created for ReplicaSet
+# Delete Service
+kubectl delete svc <service-name>
+
+# Sample Commands
+kubectl delete svc my-helloworld-rs-service
+[or]
+kubectl delete svc/my-helloworld-rs-service
+
+# Verify if Service got deleted
+kubectl get svc
+
+
+Kubectl edit commend
+========================
+
+we can edit the live object using kubectl edit commands
+
+
+Deployments in Kubernetes
+=======================
+
+superset of RS(replicaset) which have extra features and package it as a deployment
+
+pod > replicaset  > deployment( of many service)
+
+
+
+Kubectl annotate command (All Kubernetes objects support the ability to store additional data with the object as annotations. Annotations are key/value pairs that can be larger than labels and include arbitrary string values such as structured JSON. Tools and system extensions may use annotations to store their own data.)
+
+
+Attempting to set an annotation that already exists will fail unless --overwrite is set
+
+to put revision we use that
+
+
+
+
+  kubectl annotate -f pod.json description='my frontend'
+
+
+Update Change-Cause for the Kubernetes Deployment - Rollout History
+Observation: We have the rollout history, so we can switch back to older revisions using revision history available to us
+# Verify Rollout History
+kubectl rollout history deployment/my-first-deployment
+
+# Update REVISION CHANGE-CAUSE for Kubernetes Deployment
+kubectl annotate deployment/my-first-deployment kubernetes.io/change-cause="Deployment CREATE - App Version 1.0.0"
+
+# Verify Rollout History
+kubectl rollout history deployment/my-first-deployment
+
+
+
+
+SET IMAGE in Kubernetes
+========================
+
+by default rolling update fashion is used to update in pod or deployments
+
+
+kubectl set image
+Synopsis
+Update existing container image(s) of resources.
+
+# Update Deployment - SHOULD WORK NOW
+kubectl set image deployment/<Deployment-Name> <Container-Name>=<Container-Image> 
+
+kubectl set image deployment/my-first-deployment kubenginx=ghcr.io/stacksimplify/kubenginx:2.0.0 
+
+
+
+Rollback and rolling restart
+============================
+
+Rolling Restarts
+Step-01: Rollback a Deployment to previous version
+Step-01-01: Check the Rollout History of a Deployment
+# List Deployment Rollout History
+kubectl rollout history deployment/<Deployment-Name>
+kubectl rollout history deployment/my-first-deployment  
+Step-01-02: Verify changes in each revision
+Observation: Review the "Annotations" and "Image" tags for clear understanding about changes.
+# List Deployment History with revision information
+kubectl rollout history deployment/my-first-deployment --revision=1
+kubectl rollout history deployment/my-first-deployment --revision=2
+kubectl rollout history deployment/my-first-deployment --revision=3
+Step-01-03: Rollback to previous version
+Observation: If we rollback, it will go back to revision-2 and its number increases to revision-4
+# Undo Deployment
+kubectl rollout undo deployment/my-first-deployment
+
+# List Deployment Rollout History
+kubectl rollout history deployment/my-first-deployment  
+Step-01-04: Verify Deployment, Pods, ReplicaSets
+# Verify Deployment, Pods, ReplicaSets
+kubectl get deploy
+kubectl get rs
+kubectl get po
+kubectl describe deploy my-first-deployment
+Step-01-05: Access the Application using Public IP
+We should see Application Version:V2 whenever we access the application in browser
+# Get Load Balancer IP
+kubectl get svc
+
+# Application URL
+http://<External-IP-from-get-service-output>
+Step-02: Rollback to specific revision
+Step-02-01: Check the Rollout History of a Deployment
+# List Deployment Rollout History
+kubectl rollout history deployment/<Deployment-Name>
+kubectl rollout history deployment/my-first-deployment 
+Step-02-02: Rollback to specific revision
+# Rollback Deployment to Specific Revision
+kubectl rollout undo deployment/my-first-deployment --to-revision=3
+Step-02-03: List Deployment History
+Observation: If we rollback to revision 3, it will go back to revision-3 and its number increases to revision-5 in rollout history
+# List Deployment Rollout History
+kubectl rollout history deployment/my-first-deployment
+Step-02-04: Access the Application using Public IP
+We should see Application Version:V3 whenever we access the application in browser
+# Get Load Balancer IP
+kubectl get svc
+
+# Application URL
+http://<Load-Balancer-IP>
+
+Step-03: Rolling Restarts of Application
+Rolling restarts will kill the existing pods and recreate new pods in a rolling fashion.
+# Rolling Restarts
+kubectl rollout restart deployment/<Deployment-Name>
+kubectl rollout restart deployment/my-first-deployment
+
+# Get list of Pods
+kubectl get po
+
+
+by default we create cluster it will be clusterip
+
+
+Kubernetes Node pools(GKE)
+==========================
+
+within cluster same group of nodes configured
+
+node pool with categorize
+
+node pool with local SSD
+node pool with minimum CPU platform
+node pool with spot vms
+node pool with specific node images
+node pool with specific machine types
+
+nood pool can be created ,updated and deleted w/o affecting cluster whole
+
+we cannot make changes to a single node in a nodepool , changes will be applied to all nodes
+
+we can resize node pool by adding and removing nodes
+
+we can enable cluster autoscaler in node pool to automatically increase or decrease nodes in a node pool based on usage
+
+NODE selectors
+==============
+
+label (selector) of Kubernetes same in GKE
+
+is a easy way to control where pods get scheduled in a Kubernetes cluster , ensuring that they land on node with specific characteristics or attributes
+
+
+we can explicitly deploy a pod to a specific node pool by setting a node selector
+
+in GKE
+
+nodeSelector:
+  cloud.google.com/gKe-nodepool: linuxapps-nodepool
+
+ 
+Create a GKE Node Pool
+# List Node Pools
+gcloud container node-pools list --cluster "standard-public-cluster-1" --location "us-central1"
+
+# Create Linux Node Pool 
+gcloud container node-pools create "linuxapps-nodepool" \
+  --cluster "standard-public-cluster-1" \
+  --machine-type "e2-small" \
+  --disk-size "20" \
+  --num-nodes "1" \
+  --location "us-central1" \
+  --spot 
+
+# List Node Pools
+gcloud container node-pools list --cluster "standard-public-cluster-1" --location "us-central1"
+Step-03: Review Kubernetes Deployment Pod Specification for NodeSelectors
+Deploy pods to specific Node pools
+apiVersion: apps/v1
+kind: Deployment  
+metadata: 
+  name: mylinuxapp-deployment
+spec: 
+  replicas: 3
+  selector: 
+    matchLabels: 
+      app: mylinuxapp
+  template:
+    metadata: 
+      name: mylinuxapp-pod
+      labels:
+        app: mylinuxapp 
+    spec:
+      # To schedule pods based on NodeSelectors     
+      nodeSelector:
+        cloud.google.com/gke-nodepool: linuxapps-nodepool  
+      containers: 
+        - name: mylinuxapp-container
+          image: ghcr.io/stacksimplify/kubenginx:1.0.0
+          ports: 
+            - containerPort: 80 
+Step-04: Deploy and Verify
+# Deploy Kubernetes Resources
+kubectl apply -f kube-manifests/
+
+# Verify Pods
+kubectl get pods -o wide
+Observation: 
+1. Verify if pods got scheduled on Nodes created for NodePool:linuxapps-nodepool
+
+# Access Application
+kubectl get svc
+http://<EXTERNAL-IP>
+Step-05: Clean-Up
+# Delete Kubernetes Resources
+kubectl delete -f kube-manifests/
+
+# Delete Node pool (DONT DELETE, WE NEED in next DEMO: DaemonSets)
+gcloud container node-pools delete "linuxapps-nodepool" \
+  --cluster "standard-public-cluster-1" \
+  --location "us-central1"
+
+
+Kubernetes DaemonSet
+======================
+-In Daemonset all or some nodes run a cpoy of a pod
+-whenever we create this (daemonset) w/o replicaset 
+all or some nodes have a (run a )copy of pods.
+
+-w/o replica we get copy of pods on nodes
+- if nodes r added then copy of pod will be run in that nodes too
+
+-when nodes are removed from clusters then those pods r garbage collected in daemonset only
+
+- in replicaset no of copy of pods maintained but in daemonset when nodes removed pods garbage collected.
+
+-deleting a daemonSet will cleanup the pods it created
+
+-tints and toleration (if we want to run specific task on specific pod only the we use tints and toleration)
+
+
+usecases of Daemonset
+======================
+
+-running like cluster storage daemon on every node
+-running like logs collection daemons on every nodes
+-running a node monitoring daemons on every node
+
+DaemonSet is a namespace level resource
+
+
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: myapp1-daemonset
+  namespace: default
+  labels:
+    app: myapp
+spec:  
+  selector:
+    matchLabels:
+      app: myapp
+  template:
+    metadata:
+      labels:
+        app: myapp
+    spec:
+      containers:
+      - name: myapp-container
+        image: ghcr.io/stacksimplify/kubenginx:1.0.0
+
+# Deploy Kubernetes Resources
+kubectl apply -f kube-manifests/
+
+# Verify DaemonSet
+kubectl get daemonset
+kubectl get ds
+
+# Verify Pods
+kubectl get pods -o wide
+Observation: 
+1. Verify if pods got scheduled on Nodes created for NodePool:linuxapps-nodepool
+NodePool:default
+Step-05: Clean-Up
+# Delete Kubernetes Resources
+kubectl delete -f kube-manifests/
+
+# Delete Node pool 
+gcloud container node-pools delete "linuxapps-nodepool" \
+  --cluster "standard-public-cluster-1" \
+  --location "us-central1"
+
+
+
+Kubernetes Jobs
+================
+
+Kubernetes job
+
+name     completion    duration     age
+job1          1/1        33s        48s
+
+Kubernetes pod created by jobs
+
+name		 Ready	Status      restart  Age  
+job1-dddvs        0/1    completed    0       55
+
+
+A job creates pods for executing tasks
+
+A job monitors the completion status of pods as they finish their tasks
+
+pods run to their completion
+
+when a specific number of successful completion is reached the job marked as completed
+
+deleting a job mean cleanup the pods it created
+
+suspending a job mean delete its active pods until job is resumed
+
+
+apiVersion: batch/v1
+kind: Job
+metadata:
+  # Unique key of the Job instance
+  name: job1
+spec:
+  template:
+    metadata:
+      name: job1
+    spec:
+      containers:
+      - name: job1
+        image: alpine
+        command: ['sh', '-c', 'echo Kubernetes Jobs Demo ; sleep 30']
+      # Do not restart containers after they exit
+      restartPolicy: Never
+
+
+its used for batch processing
+
+its used for parallel processing
+
+
+Kubernetes  backofflimits
+==========================
+
+- if Kubernetes job has an error and we want to prevent it from continuously trying to run then we use backoffLimit
+-it specifies no of retries before job is marked as failed
+-default backoffLimit 6
+
+in unix exit 0 mean success and non zero no (like 1 ) is a error
+
+apiVersion: batch/v1
+kind: Job
+metadata:
+  # Unique key of the Job instance
+  name: job1
+spec:
+  template:
+    metadata:
+      name: job1
+    spec:
+      containers:
+      - name: job1
+        image: alpine
+        # In Unix-like systems, including Linux, an exit status code of 0 indicates success, while a non-zero exit status code (usually 1) indicates failure or an error condition
+        command: ['sh', '-c', 'echo Kubernetes Jobs Demo - backoffLimit Test ; exit 1']
+      # Do not restart containers after they exit
+      restartPolicy: Never
+  # backoffLimit: Number of retries before marking as failed.
+  backoffLimit: 4 # Default value is 6
+
+JOB COMPLETION
+===============
+
+how many pods must successfully completed for job to be considered completed
+
+completed : 4
+
+that mean 4 pods created to complete one job
+
+
+JOB= task
+
+and task in pod
+
+apiVersion: batch/v1
+kind: Job
+metadata:
+  # Unique key of the Job instance
+  name: job1
+spec:
+  template:
+    metadata:
+      name: job1
+    spec:
+      containers:
+      - name: job1
+        image: alpine
+        command: ['sh', '-c', 'echo Kubernetes Jobs Demo - Job Completions Test ; sleep 20']
+      # Do not restart containers after they exit
+      restartPolicy: Never
+  # backoffLimit: Number of retries before marking as failed.
+  backoffLimit: 4 # Default value is 6
+  # completions: Specify how many Pods must successfully complete for job to be considered complete.
+  completions: 4
+
+
+Job Parallelism
+==================
+
+By default jobs run in sequential order ( its not run in parallel mode)
+
+ if we want to run job in parallel then we have to use parallelism
+
+apiVersion: batch/v1
+kind: Job
+metadata:
+  # Unique key of the Job instance
+  name: job1
+spec:
+  template:
+    metadata:
+      name: job1
+    spec:
+      containers:
+      - name: job1
+        image: alpine
+        command: ['sh', '-c', 'echo Kubernetes Jobs Demo - Job Completions and Parallelism Test ; sleep 20']
+      # Do not restart containers after they exit
+      restartPolicy: Never
+  # backoffLimit: Number of retries before marking as failed.
+  backoffLimit: 4 # Default value is 6
+  # completions: Specify how many Pods must successfully complete for job to be considered complete.
+  completions: 4
+  # parallelism: Specifies the maximum desired number of Pods a Job should run concurrently at any given time.
+  parallelism: 2
+
+
+
+Kubernets Job ActiveDeadlineSeconds
+===================================
+activeDeadlineSeconds: is an attribute that specifies the maximum duration (in seconds) that the Job is allowed to run
+If the Job does not complete within the specified duration, Kubernetes will terminate the Job regardless of its completion status
+This attribute is useful for setting a timeout for Jobs, ensuring that they do not run indefinitely and freeing up resources if they take too long to complete.
+You can specify a deadline value using the optional .spec.activeDeadlineSeconds field of the Job.
+The activeDeadlineSeconds value is relative to the startTime of the Job, and applies to the duration of the Job, no matter how many Pods are created.
+Important Note: Ensure that you add the activeDeadlineSecond value to the Job's spec field. The spec field in the Pod template field also accepts an activeDeadlineSeconds value.
+
+
+apiVersion: batch/v1
+kind: Job
+metadata:
+  # Unique key of the Job instance
+  name: job1
+spec:
+  template:
+    metadata:
+      name: job1
+    spec:
+      containers:
+      - name: job1
+        image: alpine
+        command: ['sh', '-c', 'echo Kubernetes Jobs Demo - Job Completions and Parallelism Test ; sleep 20']
+      # Do not restart containers after they exit
+      restartPolicy: Never
+  # backoffLimit: Number of retries before marking as failed.
+  backoffLimit: 4 # Default value is 6
+  # completions: Specify how many Pods must successfully complete for job to be considered complete.
+  completions: 4
+  # parallelism: Specifies the maximum desired number of Pods a Job should run concurrently at any given time.
+  parallelism: 2
+  # activeDeadlineSeconds: Specifies the total runtime of the Kubernetes Job
+  activeDeadlineSeconds: 5 # 5 Seconds should fail, change to 60 Seconds and Job should pass 
+
+
+
+
+Kubernetes Cron jobs
+====================
+
+
+used for performing regular scheduled action
+-backup
+-log rotation
+-data cleanup
+
+apiVersion: batch/v1
+kind: CronJob		\\
+metadata:
+  name: cron-job-demo
+spec:
+  schedule: "*/1 * * * *"	\\
+  concurrencyPolicy: Allow
+  startingDeadlineSeconds: 100
+  suspend: false
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 1
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+          - name: hello
+            image: busybox
+            args:
+            - /bin/sh
+            - -c
+            - date; echo "Hello, World!"
+          restartPolicy: OnFailure
+
+
+*(min 0-59) *(hrs 0-23) *(day (date)of the month 1-31) *(month 1-12) *(day of the week 0-6)
+
+
+Kubernetes NODEport Service
+==========================
+
+
+NOde port service allows external client to access pods via network ports opened on the Kubernetes nodes
+
+node port service range from 30000-32768 on Kubernetes nodes but its customized
+
+in real world nodeport service is not used
+
+
+apiVersion: v1
+kind: Service 
+metadata:
+  name: myapp1-nodeport-service
+spec:
+  type: NodePort # ClusterIP, # NodePort, # LoadBalancer, # ExternalName
+  selector:
+    app: myapp1
+  ports: 
+    - name: http
+      port: 80 # Service Port
+      targetPort: 80 # Container Port
+      nodePort: 30080 # NodePort (Optional)(Node Port Range: 30000-32768)
+
+
+
+apiVersion: apps/v1
+kind: Deployment 
+metadata: 
+  name: myapp1-deployment
+spec: # Dictionary
+  replicas: 2
+  selector:
+    matchLabels:
+      app: myapp1
+  template:  
+    metadata: # Dictionary
+      name: myapp1-pod
+      labels: # Dictionary
+        app: myapp1  # Key value pairs
+    spec:
+      containers: # List
+        - name: myapp1-container
+          image: ghcr.io/stacksimplify/kubenginx:1.0.0
+          ports: 
+            - containerPort: 80  
+    
+
+CulsterIP Service
+==================
+
+-its used for internal client(internal apps and all)
+-internal client send request to a stable internal ip add or DNS name
+-it somewhat like layer 4 internal
+loadbalancer
+
+why we need it
+============
+
+-when pod restarted ips r not static so that y we need
+-we need something with stable ip and static DNS name for load balance traffic to pods
+
+(servicename>.<namespace>.svc.cluster.local
+
+http://my-clusterip-service.default.svc.cluster.local
+
+
+Headless Service in Kubernetes
+================================
+
+-when we create clusterIP service it will assign some ip to it
+-but when a clusterip is not allocated
+it is headless service'
+-headless service DNS directly resolve to POD IP add
+-it will directly send traffic to pods with pod ip
+-DNS resolve to pod IPS
+
+
+Usecases
+=========
+-statefulsets
+-database clusters
+-messaging system (kafka RabbitMQ)
+
+
+in yaml file
+
+culsterIP : None
+
+physical > datalink > network > transport > session > Presentation > application
+
+
+Ingress Service:
+================
+
+All of the above service are layer 4 OSI model service  TCP or UDP layer
+
+but if want service for http then we use ingress service
+
+this is a layer 7 osi model service(application layer )
+
+like http,url path, host header,custom header
+
+
+
+
+only gce then ecternal loadbalancer ingress
+if we put gce_internal hen it will create ingress internal loadbalancer
+
+if we want to put path or want to access folder of path then use PREFIX EXact in a file
+
+Prefix   /  mean request path all
+
+Exact    /foo  only /foo path should match exactly
+
+
+Kubernetes storage
+=====================
+
+ 2 types class in GKE storage class
+
+standard-rwo (readwriteonce): provides balanced disks
+
+premium-rwo : Provides ssd disks
+
+
+persistent volume claim : (PVC)
+
+apiversion : v1
+kind: PersistentVolumeClaim
+metadata: 
+  name: mypvc1
+spec: 
+  accessMode: 
+    - ReadWriteOnce
+  storageClassName: standard-rwo
+  resources:
+     requests:
+        storage: 1Gi
+
+if persistent volume that satisfies the request exists or can be provisioned , the PVC is bound to that persistent volume
+
+
+Access mode:
+
+ReadWriteOnce: the volume can be mounted as read write by a single node
+
+ReadOnlyMany : the volume can be mounted read only by many nodes
+
+RadWriteMAny : the volume can be mounted as read-write by many nodes its not supported by GKE
+
+in GKE persistence volume is backed by google persistent disk
+
+it can be dynamically provisioned add or deleted 
+
+it is a cluster level resource
+
+it doesn't impact cluster change, pd deleted created it will not impact persistence volume , it only deleted when we delete it
+
+persistence volume is cluster level resources
+
+persistence volume claim is namespace level resources
+
+waitforfirstconsumer  after we create claim( bcoz pod is not present till then it will not create resource)
+ use of this
+===========
+
+if PV is created in diff zone and pods created in diff zone so that y we get this type of status till we create pod 
+
+Kubernetes StatefulSet
+======================
+
+-Kubernetes maintain pods unique,persistent identities and stable hostname regardless of where they are scheduled
+
+when we delete pod then also pod created with same hostname in statefulset case
+
+statefulset pods + persistent volume it will create its own persistence volume
+
+
+statefulset pods can be restarted at any time
+
+when it restarted or recreated always it create the pod with same aname and attaches the same persistent disk
+
+for stateful application use statefulset 
+
+
+headline service is stateful;
+
+statefulsets requires headless service(clusper is none)
+
+if we want to access pods from service then we use 
+
+Pod-0 endpoints : mypod1-0.my-headless-service.default.svc.cluster.local
+
+
+headless service endpoint load balanced traffic to all pods
+
+service endpoint  : my-headless-service.default.svc.cluster.local
+
+
+
+used
+=====
+
+
+stable, unique network identifiers
+stable, persistent storage
+ordered graceful deployment and scaling
+order automated rolling update
+
+
+usecases
+=========
+
+MySQL database
+
+master server in MySQL will have read write
+salve server only for read purpose
+
+we can use pod-0 acting as a master 
+rest all pods we can use it for slave
+
+by pod-0.my-headless-service.default.svc.cluster.local
+
+
+
+
+
+
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: myapp1-sts
+spec:
+  selector:
+    matchLabels:
+      app: nginx # has to match .spec.template.metadata.labels
+  serviceName: "myapp1-hs-svc"
+  replicas: 3 # by default is 1
+  minReadySeconds: 10 # by default is 0
+  template:
+    metadata:
+      labels:
+        app: nginx # has to match .spec.selector.matchLabels
+    spec:
+      terminationGracePeriodSeconds: 10
+      initContainers:
+      - name: init-pass-hostname
+        image: alpine
+        command: ["/bin/sh", "-c", "echo POD_HOSTNAME: $HOSTNAME > /usr/share/nginx/html/index.html"]
+        volumeMounts:
+        - name: www
+          mountPath: /usr/share/nginx/html   
+      containers:
+      - name: nginx
+        #image: registry.k8s.io/nginx-slim:0.8
+        image: ghcr.io/stacksimplify/kubenginx:1.0.0
+        ports:
+        - containerPort: 80
+          name: web
+        volumeMounts:
+        - name: www
+          mountPath: /usr/share/nginx/html            
+  volumeClaimTemplates:
+  - metadata:
+      name: www
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      storageClassName: "premium-rwo"
+      resources:
+        requests:
+          storage: 1Gi
+
+
+
+Kubernetes Cluster Autoscaler
+=============================
+
+-automatically resize the no of nodes in node pool
+-while demanding workload we define max size and min size
+
+minimum size: 3
+Maximum Size: 12
+
+scale-out : gradually increases nodes to maximum size based on need 
+
+scale-in: decreases nodes to minimum size 
+
+autoscalar is used in standard cluster 
+
+autopilot cluster uses node auto-provisioning( gke automatically take care of nodes and manage node pools)
+
+gcloud container clusters create "standard-public-cluster-1" \
+  --machine-type "e2-micro" \
+  --disk-size "20" \
+  --spot \
+  --num-nodes "1" \
+  --region "us-central1"
+
+
+Horizontal scaling meaning adding more nodes
+
+Vertical Scaling meaning adding more power to current machines
+
+ Horizontal scaling adds more servers to your hosting configuration to increase its power
+
+
+Horizontal POD Autoscaling(HPA)
+===============================
+
+
+Automatically increase or decrease no of pods in response to 
+-workload cpu, memory utilization
+-costum metrics
+-external metrics
+-custom metrics using managed service for Prometheus
+
+HPA automatically scales the pods in workload types
+Kubernetes replicaset
+Kubernetes Replication controller
+Kubernetes Deployment
+Kubernetes statefulset
+
+
+
+this help in scaleout and scalein when demand increases and decreases respectively
+
+in Kubernetes we can do that using below command
+
+kubectl autoscale deployment my-app --max 6 --min 4 --cpu-percent 50
+
+Kubernetes Metrics Servers
+========================
+
+
+kubectl get deploy -n kube-system
+
+
+it will show kubernet metric servers
+
+it will collect resource metrics from kubelet and expose them to Kubernetes apiserver through metrics API
+
+Metrics api can be accessed by kubectl top making it easier to debug autoscaling pipeline
+
+
+kubectl top nodes
+
+kubectl top pods commands
+
+
+its primary use for autoscaling only
+
+it can be use for HPA and vertical pod autoscaling(VPA) also
+
+
+under kube-system metric server is running getting data from nodes  > this metric server is  getting data from pods > HPA(run every 15 sec) is taking data from this metric system server and calculate if cpu utilization is more than 50 percent then it will create more podes if cpu utilization decreased then it will scale in (reduce no of pods)pods.
+
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: cpu
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: myapp1-deployment
+  minReplicas: 1
+  maxReplicas: 10
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 30
+
+
+
+# Deploy Sample
+kubectl apply -f kube-manifests-autoscalerV2
+
+# List Pods
+kubectl get pods
+Observation: 
+1. Currently only 1 pod is running
+
+# List HPA
+kubectl get hpa
+
+# Run Load Test (New Terminal)
+kubectl run -i --tty load-generator --rm --image=busybox --restart=Never -- /bin/sh -c "while sleep 0.01; do wget -q -O- http://myapp1-cip-service; done"
+
+
+# List Pods (SCALE UP EVENT)
+kubectl get pods
+Observation:
+1. New pods will be created to reduce the CPU spikes
+
+# kubectl top command
+kubectl top pod
+
+# List HPA (after few mins - approx 3 to 5 mins)
+kubectl get hpa --watch
+
+# List Pods (SCALE IN EVENT)
+kubectl get pods
+Observation:
+1. Only 1 pod should be running when there is no load on the workloads
+Step-04: Clean-Up
+# Delete Load Generator Pod which is in Error State
+kubectl delete pod load-generator
+
+# Delete Sample App
+kubectl delete -f kube-manifests-autoscalerV2
+Step-05: Create HPA using Imperative command (kubectl autoscale)
+# Deploy Sample (Replicas: 1)
+kubectl apply -f kube-manifests-autoscalerV2/01-kubernetes-deployment.yaml
+
+# List Pods
+kubectl get pods
+Observation: One pod will be running
+
+# Create HPA using imperative command
+kubectl autoscale deployment myapp1-deployment --min 3 --max 10 --cpu-percent 30
+
+# List HPA
+kubectl get hpa
+
+# List Pods
+kubectl get pods
+Observation: 3 pods will be running as per --min 3 from HPA imperative command
+
+# Review HPA yaml file
+kubectl get hpa myapp1-deployment -o yaml
+Observation:
+1. It should create a HPA with apiVersion: autoscaling/v2
+Step-06: Clean-Up
+# Delete Sample App
+kubectl delete -f kube-manifests-autoscalerV2/01-kubernetes-deployment.yaml
+
+# Delete HPA
+kubectl delete hpa myapp1-deployment
+Step-07: kubectl top command
+# Nodes
+kubectl top node
+
+# Pods
+kubectl top pod -n kube-system
+
+
+HPA (horizontal POD Autoscaling) using GKE
+==========================================
+
+when we create deployment from CLI > we get workload under GKE cluster > edit that workload for Horizontal pod deployment by using some metrix
+
+cpu 30% like this and same
+
+then come to cli and check for hpa it will show one hpa in CLI
+
+
+
+resources 
+request and limit we define in hpa template
+
+
+VPA Vertical PODS Autoscaling
+=============================
+
+let u increase CPU memory required by pods in 2 ways
+
+manual(initial)
+=================
+
+vpa recommends cpu an dmemory request and limits 
+we can review the recommendation and update the value manaually
+
+automatic
+===========
+vpa recommends and automatically update the cpu and memory requests and limits
+
+vpa evicts and recreate the pod during the resource request update
+
+( new pod will be created in VPA so we will have small downtime in this)
+
+VPA in Standard vs Autopilot clusters
+
+in standard we need to enabled VPA underworkload level for standard clusters
+
+VPA is by default enabled in autopilot clusters
+
+
+apiVersion: autoscaling.k8s.io/v1
+kind: VerticalPodAutoscaler
+metadata:
+  name: myapp1-deployment
+  namespace: default
+  clusterName: standard-public-cluster-1
+spec:
+  targetRef:
+    kind: Deployment
+    name: myapp1-deployment
+    apiVersion: apps/v1
+  updatePolicy:
+    updateMode: Auto
+  resourcePolicy:
+    containerPolicies:
+      - containerName: myapp1-container
+        mode: Auto
+        controlledResources:
+          - cpu
+          - memory
+        minAllowed:
+          cpu: 25m
+          memory: 50Mi
+        maxAllowed:
+          cpu: 100m
+          memory: 100Mi
+
+
+
+Google Artifacts Registry
+========================
+
+-its regional and multi-regional repository
+
+Step-02: Create Dockefile
+Dockerfile
+FROM nginx
+COPY index.html /usr/share/nginx/html
+Step-03: Build Docker Image
+# Change Directory
+cd 01-Docker-Image
+
+# Build Docker Image
+docker build -t myapp1:v1 .
+
+# List Docker Image
+docker images myapp1
+Step-04: Run Docker Image
+# Run Docker Image
+docker run --name myapp1 -p 80:80 -d myapp1:v1
+
+# Access in browser
+curl http://localhost
+
+# List Running Docker Containers
+docker ps
+
+# Stop Docker Container
+docker stop myapp1
+
+# List All Docker Containers (Stopped Containers)
+docker ps -a
+
+# Delete Stopped Container
+docker rm myapp1
+
+# List All Docker Containers (Stopped Containers)
+docker ps -a
+Step-05: Create Google Artifact Registry
+Go to Artifact Registry -> Repositories -> Create
+# Create Google Artifact Registry 
+Name: gke-artifact-repo1
+Format: Docker
+Mode: Standard
+Region: us-central-1
+Encryption: Google-managed encryption key
+Cleanup policies: Dry run (leave to defaults)
+Click on Create
+Step-06: Configure Google Artifact Repository authentication
+# Google Artifact Repository authentication
+## To set up authentication to Docker repositories in the region us-central1
+gcloud auth configure-docker <LOCATION>-docker.pkg.dev
+gcloud auth configure-docker us-central1-docker.pkg.dev
+Step-07: Tag & push the Docker image to Google Artifact Registry
+# Tag the Docker Image
+docker tag myapp1:v1 <LOCATION>-docker.pkg.dev/<GOOGLE-PROJECT-ID>/<GOOGLE-ARTIFACT-REGISTRY-NAME>/<IMAGE-NAME>:<IMAGE-TAG>
+
+# Replace Values for docker tag command 
+# - LOCATION, 
+# - GOOGLE-PROJECT-ID, 
+# - GOOGLE-ARTIFACT-REGISTRY-NAME, 
+# - IMAGE-NAME, 
+# - IMAGE-TAG
+docker tag myapp1:v1 us-central1-docker.pkg.dev/gcplearn9/gke-artifact-repo1/myapp1:v1
+
+# Google Cloud Shell
+gcloud auth login
+
+# Push the Docker Image to Google Artifact Registry
+docker push us-central1-docker.pkg.dev/gcplearn9/gke-artifact-repo1/myapp1:v1
+Step-08: Verify the Docker Image on Google Artifact Registry
+Go to Google Artifact Registry -> Repositories -> gke-artifact-repo1
+Review myapp1 Docker Image
+Step-09: Update Docker Image and Review kube-manifests
+Project-Folder: 02-kube-manifests
+# Dcoker Image
+image: us-central1-docker.pkg.dev/<GCP-PROJECT-ID>/<ARTIFACT-REPO>/myapp1:v1
+
+# Update Docker Image in 01-kubernetes-deployment.yaml
+image: us-central1-docker.pkg.dev/gcplearn9/gke-artifact-repo1/myapp1:v1
+Step-10: Deploy kube-manifests
+# Deploy kube-manifests
+kubectl apply -f 02-kube-manifests
+
+# List Deployments
+kubectl get deploy
+
+# List Pods
+kubectl get pods
+
+# Describe Pod
+kubectl describe pod <POD-NAME>
+
+## Observation - Verify Events command "kubectl describe pod <POD-NAME>"
+### We should see image pulled from "us-central1-docker.pkg.dev/gcplearn9/gke-artifact-repo1/myapp1:v1"
+Events:
+  Type    Reason     Age   From               Message
+  ----    ------     ----  ----               -------
+  Normal  Scheduled  86s   default-scheduler  Successfully assigned default/myapp1-deployment-5f8d5c6f48-pb686 to gke-standard-cluster-1-default-pool-2c852f67-46hv
+  Normal  Pulling    85s   kubelet            Pulling image "us-central1-docker.pkg.dev/gcplearn9/gke-artifact-repo1/myapp1:v1"
+  Normal  Pulled     81s   kubelet            Successfully pulled image "us-central1-docker.pkg.dev/gcplearn9/gke-artifact-repo1/myapp1:v1" in 4.285567138s
+  Normal  Created    81s   kubelet            Created container myapp1-container
+  Normal  Started    80s   kubelet            Started container myapp1-container
+Kalyans-MacBook-Pro:41-GKE-Artiact-Registry kdaida$ 
+
+
+# List Services
+kubectl get svc
+
+# Access Application
+http://<SVC-EXTERNAL-IP>
+Step-11: Clean-Up
+# Undeploy sample App
+kubectl delete -f 02-kube-manifests
+
+
+
+GKE Private Clusters
+====================
+private clusters can be included in both autopilot or standard clusters
+
+private cluster doesn't have external ip
+
+so if we need internet then it will use cloud NAT
+
+if we want to access cloud api and service we use private google access should be on
+
+# Least secure option: 
+Public endpoint access enabled
+authorized networks disabled
+
+# Medium secure option: (WE WILL CHOOSE OPTION-2)
+Public endpoint access enabled
+authorized networks enabled
+
+# High secure option:
+Public endpoint access disabled
+
+
+
+Control plane authorized networks: ENABLED
+
+gcloud container clusters update CLUSTER_NAME \
+    --enable-master-authorized-networks \
+    --master-authorized-networks EXISTING_AUTH_NETS,CLOUD_SHELL_IP/32 \
+    --location us-central1
+
+# Replace Values CLUSTER_NAME, EXISTING_AUTH_NETS, CLOUD_SHELL_IP/32
+gcloud container clusters update standard-private-cluster-1 \
+    --enable-master-authorized-networks \
+    --master-authorized-networks 35.187.230.177/32 \
+    --location us-central1
+[or]
+Go to Cluster -> Details -> Networking -> EDIT -> Control plane authorized networks	
+
+# List Kubernetes Nodes
+kubectl get nodes
+Observation:
+1. It should pass
+2. Private GKE cluster nodes should be listed
+
+Autopilot Clusters
+=================
+
+-automatic all setting are done
+
+-in autopilot we pay for pod no like standard where we pay for nodes
+-security patches applied automatically 
+
+-and storage what we use
+-prices are less as per standard
+-uses very advance networking
+
+
+
+CLOUD IAM
+=========
+
+(Identity and ACcess management)
+
+
+organization > company
+folder > dept A , dept b , dept 3
+projects > deployment project , qa project , production project
+
+resources > compute cloud run  cloud services
+
+organization > folders > projects > resources 
+
+when our account is google workspace or cloud identity account then only we can create organization as the root node
+
+cloud resource manager under IAM
+
+IAM Roles > who will do what
+
+no of accounts in GCP
+
+google act
+service act
+google groups
+google workspace act
+cloud identity domain
+
+access : by role and permission
+
+like compute admin storage admin like access 
+
+
+role : compute admin
+per : compute.instance.create
+
+compute role can create delete VM
+
+role : storage admin
+
+management : Manage access to resources(GCP resource)
+
+
+IAM Roles
+========
+
+primitive roles
+(owner role)
+(Editor role)
+(viewer role)
+
+to all GCP no recommended to give 
+
+predefined roles(created by google we have to use)
+many roles defined by GCP it will give fine graned access to use
+
+compute admin
+compute viewer
+compute n/w admin
+compute n/w viewer many more in diff services 
+
+custom role:
+
+we can create new role by assigning desired role
+
+if predefined role is not present 
+
+
+# Upload the file to Cloud Shell
+Upload the file: delete-instance-role.yaml to cloud shell
+
+# Create a IAM Role with YAML File
+gcloud iam roles create myInstanceDelete102 \
+  --project=gcplearn9 \
+  --file=delete-instance-role.yaml
+
+# Describe Role
+gcloud iam roles describe ROLE_ID --project=gcplearn9
+gcloud iam roles describe myInstanceDelete102 --project=gcplearn9
+Step-04-03: Create a IAM Role with gcloud using flags at Project Level
+# Create a IAM Role with flags
+gcloud iam roles create myInstanceReset102 \
+  --project=gcplearn9 \
+  --title="Custom Compute Instance Reset Role 102" \
+  --description="My custom role used for Reset of Compoute Instance" \
+  --permissions="compute.instances.reset" \
+  --stage="ALPHA" 
+
+
+
+gcloud iam roles update myInstanceReset102 \
+  --project=gcplearn9 \
+  --remove-permissions="compute.instances.suspend"
+
+# Describe Role
+gcloud iam roles describe ROLE_ID --project=gcplearn9
+gcloud iam roles describe myInstanceReset102 --project=gcplearn9 
+
+
+
+gcloud <resource-type> get-iam-policy <resource-id> 
+gcloud projects get-iam-policy gcplearn9
+
+# Get IAM Policy with format
+gcloud <resource-type> get-iam-policy <resource-id> 
+gcloud projects get-iam-policy gcplearn9 --format=json
+gcloud projects get-iam-policy gcplearn9 --format=yaml
+Step-03: Login to Google Cloud with new user gcpuser08@gmail.com
+Open in New incognito window
+Login to Google Cloud
+Username: gcpuser08@gmail.com
+Password: XXXXXXXX
+Select Project gcplearn9
+Access Cloud Storage Buckets Service
+Observation-1: gcpuser08@gmail.com dont have access to Cloud Storage Buckets Service don't have
+# ERROR MESSAGE
+You need additional access to the project:  gcplearn9
+To request access, contact your project administrator and provide them a copy of the following information:
+
+Troubleshooting info:
+  Principal: gcpuser08@gmail.com
+  Resource: gcplearn9
+  Troubleshooting URL: console.cloud.google.com/iam-admin/troubleshooter;permissions=storage.buckets.list;principal=gcpuser08@gmail.com;resources=%2F%2Fcloudresourcemanager.googleapis.com%2Fprojects%2Fgcplearn9/result
+
+Missing or denied permissions:
+  storage.buckets.list
+Step-04: Add IAM Policy Binding
+# Set Project and User (UPDATE YOUR PROJECT AND USER DETAILS HERE)
+PROJECTID=gcplearn9
+USERID=gcpuser08@gmail.com
+
+# Add IAM Policy Binding
+gcloud <resource-type> add-iam-policy-binding <resource-id> --member <principal> --role=<roleid>
+gcloud projects add-iam-policy-binding $PROJECTID --member user:$USERID --role=roles/storage.admin
+
+# Get IAM Policy for the Project
+gcloud projects get-iam-policy gcplearn9
+Step-05: Verify access to Cloud Storage Service
+Open in New incognito window
+Login to Google Cloud
+Username: gcpuser08@gmail.com
+Password: XXXXXXXX
+Select Project gcplearn9
+Access Cloud Storage Buckets Service
+Observation-1: gcpuser08@gmail.com should have access to Cloud Storage Buckets Service
+Step-06: Remove IAM Binding
+# Set Project and User (UPDATE YOUR PROJECT AND USER DETAILS HERE)
+PROJECTID=gcplearn9
+USERID=gcpuser08@gmail.com
+
+# Add IAM Policy Binding
+gcloud <resource-type> remove-iam-policy-binding <resource-id> --member <principal> --role=<roleid>
+gcloud projects remove-iam-policy-binding $PROJECTID --member user:$USERID --role=roles/storage.admin
+
+# Get IAM Policy for the Project
+gcloud projects get-iam-policy gcplearn9
+Step-07: Verify access to Cloud Storage Service
+Open in New incognito window
+Login to Google Cloud
+Username: gcpuser08@gmail.com
+Password: XXXXXXXX
+Select Project gcplearn9
+Access Cloud Storage Buckets Service
+Observation-1: gcpuser08@gmail.com should not have access to Cloud Storage Buckets Service
+Step-08: Delete VM Instance
+# Delete VM instance
+gcloud compute instances delete vm1 --zone us-central1-a
+References
+https://cloud.google.com/iam/docs/principal-identifiers
+https://cloud.google.com/sdk/gcloud/reference/iam/policies/create
+
+
+IAM-Conditions
+==============
+
+bindings:
+- role: roles/compute.viewer
+  members:
+  - user:gcpuser08@gmail.com
+  condition:
+    expression: request.time.getDayOfWeek("Asia/Calcutta") == 0
+    title: access-on-a-day
+- role: roles/compute.admin
+  members:
+  - group:mygroup1@stacksimplify.com
+  - domain:stacksimplify.com
+
+IAM Service Account
+=====================
+
+when GCP service access other GCP service that time service account is created 
+
+eg compute engine want to access cloud storage bucket that time this is created 
+
+we create IAM service account then assign roles to that account then it is attached to resource
+
+user managed : we create and use it
+
+google managed : create by google) bcoz need access to your resources so that they can act on our behalf)
+
+default : if we create EC2 that time default Service account created
+
+but for services in google we want to give permission then we use service accounts
+
+
+# Set Project
+gcloud config set project PROJECT_ID
+gcloud config set project gcplearn9
+
+# Create VM Instance
+gcloud compute instances create vm902 \
+  --zone=us-central1-a \
+  --machine-type=e2-micro \
+  --network-interface=subnet=default 
+Step-03: Connect to VM Instance and verify with default service account we have access to create Storage Buckets
+# Connect to VM Instance
+gcloud compute ssh --zone "us-central1-a" "vm902" --project "gcplearn9"
+
+# Set Project config
+gcloud config set project PROJECT-ID
+gcloud config set project gcplearn9
+
+# List Accounts or Service Accounts configured
+gcloud auth list
+
+# List Cloud Storage Buckets
+gcloud storage buckets list
+
+# Create Cloud Storage Bucket
+gcloud storage buckets create gs://BUCKET_NAME
+gcloud storage buckets create gs://mybucket1032
+
+## Sample Output
+dkalyanreddy@vm902:~$ gcloud storage buckets create gs://mybucket1032
+Creating gs://mybucket1032/...
+ERROR: (gcloud.storage.buckets.create) HTTPError 403: Access denied.
+dkalyanreddy@vm902:~$ 
+Step-04: Create IAM Service Account using Cloud Shell
+# List Accounts or Service Accounts configured
+gcloud auth list
+
+# Create IAM Service Account
+gcloud iam service-accounts create SERVICE_ACCOUNT_NAME \
+  --description="DESCRIPTION" \
+  --display-name="DISPLAY_NAME"
+
+# REPLACE VALUES
+gcloud iam service-accounts create mysa902 \
+  --description="Service Account for VM Instances with Storage Admin privileges" \
+  --display-name="mysa902"  
+
+# Describe Service Account
+gcloud iam service-accounts describe mysa902@gcplearn9.iam.gserviceaccount.com  
+
+
+-IAM-ServiceAccount-Impersonation
+====================================
+
+if user doesn't have permission to create a vm then we can attached impersonate so that he can create vm
+
+temporary grant a access
+
+user> service act token creator > which will be added in service account 
+
+after that he will create vm 
+
+using gcloud command with flag --impersonate-service-account
+
+use case
+=======
+
+temporary grant a user elevated access
+to check specific set of permission is sufficient 
+authenticate application that run outside of GCP
+locally developed application that run only as a service account
+
+gcloud compute instances create vm103 \
+  --zone=us-central1-a \
+  --machine-type=e2-micro \
+  --network-interface=subnet=default \
+  --impersonate-service-account=mycomputeadmin@gcplearn9.iam.gserviceaccount.com 
+Observation: 
+
+
+ VM instance should be created 
+
+delete vm using same --impersonate flag only otherwise it will be not be deleted
+
+
+service account long live credential
+====================================
+
+ADC (application default credential)
+
+how we associate our local machine with GCP service 
+
+there is no direct way  to associate bcoz sevce account are attched to services or vm in gcp 
+
+we can do it via ADC(application default credential) using service account service account API
+
+LOng lived keys are 
+===================
+service accounts
+
+service account is associated with public and private RSA key pairs
+
+for long lived credential are user managed key pairs
+ we can create it using google console for a service act
+
+
+gcloud iam service-account keys create > json file will be generated we download that and it is used for authentication purpose
+
+private key is called service act key(and it never expires)
+
+by we can define expire using project , folder
+
+so that we can control this long lived keys
+
+constraints/iam.serviceAccountKEyExpiryHours
+
+
+
+and google generated keys are short term (short live)
+
+
+
+short lived credential are
+==========================
+
+Oauth token ( 1hr)
+openID connect ID token(OIDC)
+slef signed json web token(JWTs)
+self signed binary blobs
+
+and google generated keys are short term (short live)
+
+
+service account short live credential
+=======================================
+short lived credential are
+==========================
+-it is most secure way to authenticate as a service act by default its only for 1 hrs
+
+
+Oauth token ( 1hr)
+openID connect ID token(OIDC)
+slef signed json web token(JWTs)
+self signed binary blobs
+
+
+
+PUB/SUB
+==========
+it a fully managed asynchronous messaging service designed for highly reliable and scalable
+
+real time data steaming
+
+event driven system
+
+we can steam data (real time data steaming)to Bigquery with data flow
+
+PUB /SUB(publicher Suscribber)
+
+publishers : that produce data like service , MS , dB
+the messages
+
+- will publish events to pub/sub TOPICS without worrying about when or how these event will be handled
+
+
+
+
+subscribers : that process those messages
+
+subscribers subscribe to a pub/sub subscription 
+
+subscription have the following delivery types 
+
+pull :  subscriber need to pull the msg
+
+push , write to bigquery ,write to cloud storage
+
+as soon as msg arrived at pub/sub topics subscription will push it to registered subscribers
+
+
+publisher > topic of pub/sub > subscription will pull data or push data > subscription
+
+
+
+pub/sub is a global service so topic and subscription are global its not regional
+
+msg flow within the pub/sub service b/w region when needed
+
+it is designed to scaled horizontal ( taken care by google)
+
+
+life of a msg in this process
+============================
+1.  a publisher send msg to pub/sub
+2. msg written in pub/sub storage
+3. send acknowledgement to publisher that it has delivery to all attached subscription
+4.at same time  written msg to storage pub/sub also delivery it to subscriber
+5.subscriber send acknowledgement to pub/sub that they have processed the msg
+6 atleast one of the subscriber has acknowledge then the msg is dlt from pub/sub
+
+subscriber get msg that match the filter
+
+what is dead letter TOPICS
+==============================
+
+some msg with error that unable to push by subscriber  or unable to process that then it will be send to dead letter topics
+
+so that it will no create queue ( for problematic msg)
+
+exactly once delivery
+=======================
+
+msg sent to the subscription are guaranteed not to resent before the msg ack deadline expires
+
+ack msg will not be resent to the subscription
+
+Step-02: gcloud: Create Pub/Sub Topic, Subscription
+# Set Project
+gcloud config set project PROJECT_ID
+gcloud config set project gcplearn9
+
+# Create Cloud Pub/Sub Topic
+gcloud pubsub topics create mytopic2
+
+# Create Cloud Pub/Sub Subscription
+gcloud pubsub subscriptions create mysubscription2 --topic mytopic2
+
+# Review Topic and Subscription in Web Console
+1. Go to Cloud Pub/Sub -> mytopic2
+2. Go to Cloud Pub/Sub -> mysubscription2
+Step-03: gcloud: Publish Messages
+# Publish Message-1
+gcloud pubsub topics publish projects/gcplearn9/topics/mytopic2 --message="hello kalyan 1" 
+gcloud pubsub topics publish projects/gcplearn9/topics/mytopic2 --message="hello kalyan 2" 
+gcloud pubsub topics publish projects/gcplearn9/topics/mytopic2 --message="hello kalyan 3" 
+
+# Pull all messages from subscription: mysubscription3
+gcloud pubsub subscriptions pull mysubscription2
+gcloud pubsub subscriptions pull mysubscription2 —-auto-ack
+
+
+
+Pub/sub lite
+=========
+
+-lower cost, lower reliability
+-high volume partition based 
+-no lobal availability
+-manual provision like storage throughput
+-we can chose zonal or regional
+
+
+
+CLoud Storage
+===================
+
+-object storage service
+-unstructured data (text , binary, anything)
+-any amount of data with diff size
+-we retrieve data it as many time as needed
+-low latency 
+-worldwide available
+-durability
+-redundancy
+
+
+-its should be globally unique
+-bucket are associated to project
+-no limit of bucket
+-but object size must be below 5Tib
+-object name and generation no is attached in it( bcoz object name can be same that y )
+
+
+4 storage classes
+=============
+
+standard
+nearline
+clodline
+ARchive
+
+
+(will learn later)
+
+
+Monitoring and Logging(cloud observability)
+==========================================
+
+Monitoring : 
+============
+cloud Monitoring: 
+==================
+monitoring and alert on all google cloud services you r using and also your workloads when they r having an issue 
+-support various alerting mechanism google chat,pager duty ,slack,webhooks,email,sms and pub/sub
+
+
+Managed Service for the Prometheus
+==================================
+managed by google it monitor and alert in workload using Prometheus 
+
+cloud trace
+============
+latency management solution for wokload
+
+cloud Profiler
+===============
+Performance and cost management solution
+provides continuous profiling of resource consumption(CPU memory)
+
+
+Service Monitoring
+==================
+
+primarily used for services
+
+
+
+Logging
+=========
+Cloud Logging :
+=====================
+ end to end log management for all logs 
+
+
+Log analytics _ big Query
+=========================
+run queries that analyze log data and then we can view or chart the query result
+can create logging datasets in serverless BiqQuery platform which will perform aggregation at petabyte scale
+
+
+
+CLoud SQL
+=========
+
+-relational db
+
+-(on premises, self managed , fully managed db)
+
+-on premise issue
+
+-server setup, maintained,
+
+-only one master server ( for write purpose)
+
+-for read server there can be many servers
+
+-vertical scaling
+
+- for db table backup files temporary files
+we have encryption at rest
+
+n/w security we can access db with public ip or private ip
+
+support private connection with VPC (GKE and GKE workload)
+
+contain n/w firewall allowing to control pub;lic n/w access
+
+maintenance
+===========
+
+-near zero downtime of less than 10 sec
+
+
+cloud database migration( data migration service)
+
+migration from on-premises to cloud will be easy using this service
+
+# Create Instance (Very Basic)
+gcloud sql instances create INSTANCE_NAME 
+Observation:
+1. All other options will be default values
+
+# Create Instance (Set DB Version, DB Size, Root Password, Zone)
+gcloud sql instances create mydb2 \
+            --database-version=MYSQL_8_0 --cpu=2 --memory=4GB \
+            --region=us-central1 --root-password=dbpassword11 
+
+# List Database Instances
+gcloud sql instances list
+
+# Describe Database Instances
+gcloud sql instances describe INSTANCE_NAME
+gcloud sql instances describe mydb1
+gcloud sql instances describe mydb2
+Step-03: mydb1: Connect to Database Instance using Cloud Shell and Load Data
+# mydb1: Connect to Cloud SQL MySQL Instance using Cloud Shell
+gcloud sql connect mydb1 --user=root --quiet
+
+# mydb1: MySQL Commands - Create Database Schema
+show schemas;
+create schema webappdb1;
+show schemas;
+
+# mydb1: Create Table
+use webappdb1;
+CREATE TABLE myusers (firstname VARCHAR(50),lastname VARCHAR(50));
+show tables;
+
+# mydb1: Load Data into Table
+INSERT INTO myusers (firstname, lastname) VALUES
+    ('John', 'Doe'),
+    ('Jane', 'Smith'),
+    ('Alice', 'Johnson'),
+    ('Bob', 'Williams'),
+    ('Eva', 'Miller');
+
+# mydb1: Query Table
+select * from myusers;
+exit
+Step-04: mydb2: Connect to Database Instance using Cloud Shell
+# mydb2: Connect to Cloud SQL MySQL Instance using Cloud Shell
+gcloud sql connect mydb2 --user=root --quiet
+
+# mydb2: MySQL Commands
+show schemas
+Step-05: Manage Databases in a Database Instance (gcloud sql databases)
+# Create Database in the Database Instance
+gcloud sql databases create DATABASE_NAME --instance=INSTANCE_NAME
+gcloud sql databases create webappdb2 --instance=mydb1
+gcloud sql databases create webappdb3 --instance=mydb1
+gcloud sql databases create webappdb4 --instance=mydb1
+
+# List Databases from the Database Instance
+gcloud sql databases list --instance=INSTANCE_NAME
+gcloud sql databases list --instance=mydb1
+
+# Also List Databases from Web Console
+Go to Cloud SQL -> mydb1 -> Databases
+
+# Delete a Database from the Database Instance
+gcloud sql databases delete DATABASE_NAME --instance=INSTANCE_NAME
+gcloud sql databases delete webappdb4 --instance=mydb1
+gcloud sql databases list --instance=mydb1
+
+
+Google Cloud : Dataflow
+========================
+
+- fully managed data processing service, 
+-serverless
+-fast and cost effective
+-we can use dataflow to 
+create jobs that read from one or more sources
+transform the data
+write and read to the destination
+
+Autoscaling (both horizontal and vertical autoscaling ) of worker resources to maximize resource utilization
+
+
+two type of dataflow jobs:
+---------------------------
+
+stream : process data continuously
+
+batch : process data in bulk
+
+
+Ready-to-use-real-time AI
+
+
+we also have predefined template in Dataflow for both stream templates and batch template
+
+# List Jobs
+gcloud dataflow jobs list
+
+# Describe Job
+gcloud dataflow jobs describe JOB_ID
+
+
+Cloud Spanner
+===============
+
+- is same like sql relational database service
+- Reliability and scalability
+-we can scale horizontally
+-read and write scalability with no limits
+-each compute can process both reads and write
+-apps backed by spanner can read and write up-to-date strongly consistent data globally
+-no latency
+-99.9999% availability
+-multi-region instance
+-microsec granularity(recovery time)
+-manual backup
+-data boost (w/o affecting the existing transactional workload)
+-it always hot and ready to process queries
+- its have a combination of features from standard relational and non relational db
+- strong ACID features (atomicity , consistency , isolation durability) 
+
+Cloud Spanner Basics
+Step-01: Introduction
+Using google cloud web console
+Create Cloud Spanner Instance
+Create Databases
+Create Table
+Insert Data
+Query Data
+Using gcloud
+Create Cloud Spanner Instance
+Create Databases
+Create Table
+Insert Data
+Query Data
+Step-02: Create Cloud Spanner Instance
+Go to Cloud Spanner -> Create a Provisioned Instance
+Instance Name: mycsinstance1
+Instance ID: mycsinstance1
+Click on CONTINUE
+Choose Location: Regional
+Select a configuration: us-central1
+Click on CONTINUE
+Select Unit: Nodes
+Choose a scaling mode: Autoscaling
+Minimum: 1
+Maximum: 3
+REST ALL LEAVE TO DEFAULTS
+Click on CREATE
+Step-03: Create Cloud Spanner Database
+Go to Cloud Spanner -> mycsinstance1 -> INSTANCE -> Overview -> CREATE DATABASE
+Name your database: mywebappdb
+Select database dialect: Google Standard SQL (leave to defaults)
+Define your schema (optional):
+Explore Options like DDL Templates, Shortcuts
+# Create Table
+CREATE TABLE myusers (
+  userid INT64 NOT NULL,
+  firstname STRING(1024),
+  lastname  STRING(1024)
+  ) PRIMARY KEY(userid);
+Click on CREATE
+Step-04: Load Data and Query Data
+Go to Cloud Spanner -> mycsinstance1 -> mywebappdb -> Overview Tab
+Go to Cloud Spanner -> mycsinstance1 -> mywebappdb -> Spanner Studio
+# Load/Insert Data into Table
+INSERT INTO myusers (userid, firstname, lastname) VALUES
+    (1, 'John', 'Doe'),
+    (2, 'Jane', 'Smith'),
+    (3, 'Alice', 'Johnson'),
+    (4, 'Bob', 'Williams'),
+    (5, 'Eva', 'Miller');
+
+# Query Table
+select * from myusers;
+Step-05: gcloud: Create Cloud Spanner Instance
+# Set Project 
+gcloud config set project PROJECT_ID
+gcloud config set project gcplearn9
+
+# To see the set of instance configurations that are available for your project:
+gcloud spanner instance-configs list
+
+# Create Cloud Spanner Instance
+gcloud spanner instances create mycsinstance2 \
+  --config=regional-us-central1 \
+  --description="mycsinstance2" --nodes=1
+
+# List Cloud Spanner Instances
+gcloud spanner instances list
+
+# Describe Cloud Spanner Instance
+gcloud spanner instances describe mycsinstance2
+
+# To set it as default Instance (OPTIONAL)
+gcloud config set spanner/instance mycsinstance2
+
+# Create Database in Cloud Spanner Instance: mycsinstance2
+gcloud spanner databases create myappdb --instance=mycsinstance2 \
+ --ddl='CREATE TABLE myapptable (appid INT64, appname STRING(1024)) PRIMARY KEY(appname)'
+
+# List Databases
+gcloud spanner databases list --instance=mycsinstance2
+
+# Describe Databases
+gcloud spanner databases describe myappdb --instance=mycsinstance2
+
+# Write Data - Row-1
+gcloud spanner rows insert --database=myappdb --instance=mycsinstance2 \
+  --table=myapptable \
+  --data=appid=1,appname=myapp1
+
+# Write Data - Row-2
+gcloud spanner rows insert --database=myappdb --instance=mycsinstance2 \
+  --table=myapptable \
+  --data=appid=2,appname=myapp2
+
+# Write Data - Row-3  
+gcloud spanner rows insert --database=myappdb --instance=mycsinstance2 \
+  --table=myapptable \
+  --data=appid=3,appname=myapp3
+
+# Query-1: List all Records
+gcloud spanner databases execute-sql myappdb \
+  --instance=mycsinstance2 \
+  --sql='SELECT * FROM myapptable'
+
+# Query-2: WHERE appid=1
+gcloud spanner databases execute-sql myappdb \
+  --instance=mycsinstance2 \
+  --sql='SELECT * FROM myapptable WHERE appid = 1'
+
+# List Database Sessions
+gcloud spanner databases sessions list --database=myappdb --instance=mycsinstance2  
+
+
+Clean-up
+Delete Databases in mycsinstance1
+Delete mycsinstance1
+Delete Databases in mycsinstance2
+Delete mycsinstance2
+# Set Project
+gcloud config set project PROJECT_ID
+gcloud config set project gcplearn9
+
+# Cloud Spanner Instance: mycsinstance1
+gcloud spanner databases delete mywebappdb --instance=mycsinstance1
+gcloud spanner databases delete myrestoreddb --instance=mycsinstance1
+gcloud spanner backups delete mywebadddb-backup1 --instance=mycsinstance1
+gcloud spanner instances delete mycsinstance1
+
+# Cloud Spanner Instance: mycsinstance2
+gcloud spanner databases delete myappdb --instance=mycsinstance2
+gcloud spanner databases delete mywebappdb --instance=mycsinstance2
+gcloud spanner instances delete mycsinstance2
+
+# List Cloud Spanner Instances
+gcloud spanner instances list
+
+
+CLOUD ALLOYDB for PostgreSQL
+=============================
+
+high demanding workload
+-large dataset
+-data warehousing
+-HTAP - hybrid transactional and analytical processing
+- support horizontal and vertical scaling
+-delivers high performance and scaleup and down to handle varying workload
+-its expensive then clous SQL for PostgreSQL
+
+AlloyDB for PostgreSQL - Basics
+Step-01: Introduction
+Create AlloyDB Cluster
+Create GCE VM instance to connect to AlloyDB Cluster using Private Service Connection with psql client
+Review Backup options
+Delete GCE VM and AlloyDB Cluster
+Step-02: Create AlloyDB Cluster
+Goto -> AlloyDB -> CREATE CLUSTER
+Choose a cluster configuration to start with:
+Select Option: Highly available with read pool(s)
+Configure your cluster
+Basic info
+Cluster ID: myalloydb1
+Password: mypassword11
+Database version: PostgreSQL 15 compatible
+Location: us-central1
+Networking: default
+Important Note: Private services access connection for network default has been successfully created. You will now be able to use the same network across all your project's managed services
+Data Protection:
+Google-managed continuous data protection: ON
+Recovery Window: 14 days
+Encryption Options: Google managed encryption key or CMEK
+Configure your cluster
+Basic info: myprimaryinstance1
+Machine: 2vCPU, 16GB
+Add Read Pool Instances (OPTIONAL)
+Read pool Instance ID: myreadpool1
+Node count: 1
+Machine: 2vCPU, 16GB
+Click on *ADD READ POOL
+Click on CREATE CLUSTER
+Step-03: Create GCE VM Instance
+Create a VM Instance in default VPC and default subnet
+Step-04: Install psql client
+# Install psql client
+sudo apt-get update
+sudo apt-get install postgresql-client
+Step-05: Connect to AlloyDB Cluster and Execute DB Commands
+# Connect to AlloyDB Cluster
+psql -h IP_ADDRESS -U USERNAME
+psql -h 10.80.1.2 -U postgres
+
+# Create Database
+CREATE DATABASE mydatabase;
+
+# Connect to Database
+\c mydatabase
+
+# Create Table
+CREATE TABLE users (
+    user_id SERIAL PRIMARY KEY,
+    username VARCHAR(50) NOT NULL,
+    email VARCHAR(100) NOT NULL
+);
+
+# Insert Data in to Table
+INSERT INTO users (username, email) VALUES ('myuser1', 'myuser1@example.com');
+INSERT INTO users (username, email) VALUES ('myuser2', 'myuser2@example.com');
+
+# Query Data
+SELECT * FROM users;
+
+# Update Data
+UPDATE users SET email = 'john.doe@example.com' WHERE username = 'myuser1';
+
+# Delete Data
+DELETE FROM users WHERE username = 'myuser1';
+
+# Quit PostgreSQL
+\q
+Step-06: Data Protection Tab
+Review Continuous Backups
+Review about Create Backup options
+Step-07: Clean-Up
+Delete GCE VM Instance
+Delete AlloyDB Primary Instance
+Delete AlloyDB Cluster
+
+
+CLOUD STORAGE
+=============
+
+- to store unstructured data
+-any size of data
+- we can retrieve data as many time as needed
+-low latency
+-multi-region (dual region ) or across region
+-globally unique
+
+
+# List Buckets
+gcloud storage ls
+
+# Upload to Cloud Storage Buckets
+cd Cloud-Storage/01-Cloud-Storage-Basics
+gcloud storage cp myhtmlfiles/*.html gs://mybucket1032/myapp1
+
+# List Files from a Bucket
+gcloud storage ls BUCKET_NAME
+gcloud storage ls gs://mybucket1032/myapp1
+
+# Download from Cloud Storage Buckets
+mkdir downloadfiles
+gcloud storage cp gs://mybucket1032/myapp1/*.html downloadfiles/
+
+# COPY Objects between two Cloud Storage Buckets
+gcloud storage buckets create gs://mybucket1033
+gcloud storage cp gs://mybucket1032/myapp1/*.html gs://mybucket1033/myapp1/
+gcloud storage ls gs://mybucket1033/myapp1
+
+# Move Command: Rename Objects with a given prefix to new prefix
+gcloud storage mv gs://mybucket1032/myapp1 gs://mybucket1032/myapp2
+gcloud storage ls gs://mybucket1032/myapp1 - Should fail
+gcloud storage ls gs://mybucket1032/myapp2 - Should succeed
+
+# cat: writes text files in a bucket to stdout 
+gcloud storage cat gs://BUCKET_NAME/*.txt
+gcloud storage cat gs://mybucket1032/myapp2/*.html
+
+# Delete Objects in a Cloud Storage Bucket
+gcloud storage ls gs://mybucket1032/myapp2
+gcloud storage rm gs://mybucket1032/myapp2/v1-index.html
+gcloud storage ls gs://mybucket1032/myapp2
+
+Cloud Storage - Storage Classes
+Step-01: Introduction
+Discuss and understand Cloud Storage - Storage Classess
+Standard Class
+Nearline Class
+Coldline Class
+Archive Class
+Autoclass
+Step-02: Review Storage classes with Set a default class option
+Nearline Class
+Coldline Class
+Archive Class
+Autoclass
+Step-03: Autoclass with Standard and Nearline
+Step-03-01: Create Bucket with Autosclass enabled
+Goto Cloud Storage -> CREATE BUCKET
+Bucket name: mybucket1033
+Goto section Choose a storage class for your data and discuss about Autocalss
+Autoclass: checked
+Click on CREATE
+Step-03-02: Review the Bucket configuration
+Goto Cloud Storage -> mybucket1033 -> CONFIGURATION
+Observation: we should see the below
+Default storage class: Managed by Autoclass
+Included classes: Standard, Nearline
+Step-04: Autoclass with Standard, Nearline, Coldline and Archive
+Step-04-01: Create Bucket with Autosclass enabled
+Goto Cloud Storage -> CREATE BUCKET
+Bucket name: mybucket1034
+Goto section Choose a storage class for your data and discuss about Autocalss
+Autoclass: checked
+Opt-in to allow object transitions to Coldline and Archive classes: checked
+Click on CREATE
+Step-04-02: Review the Bucket configuration
+Goto Cloud Storage -> mybucket1034 -> CONFIGURATION
+Observation: we should see the below
+Default storage class: Managed by Autoclass
+Included classes: Standard, Nearline, Coldline, Archive
+
+Cloud Storage - Object Lifecycle Management
+Step-01: Introduction
+Create Object Lifecycle Management Rules (OLM Rules)
+Rule-1: Delete Object OLM Rule
+Rule-2: Set storage class to Archive
+Step-02: Create Object Lifecycle Management Rules (OLM Rules)
+Step-02-01: Rule-1: Delete Object OLM Rule
+Upload a folder, that will get deleted using delete object OLM rule.
+# Set Project
+gcloud config set project PROJECT_ID
+gcloud config set project gcplearn9
+
+# Create Copy of myapp2 as myapp3
+gcloud storage cp gs://mybucket1032/myapp2/*.html gs://mybucket1032/myapp3/
+Important Note: After you add or edit a rule, it may take up to 24 hours to take effect.
+Go to Cloud Storage -> mybucket1032 -> LIFECYCLE -> Click on ADD A RULE
+Select an action: Delete Object
+Select object conditions
+Set Rule Scopes
+Object name matches prefix: myapp2
+Click on CREATE
+Step-02-02: Rule-2: Set storage class to Archive
+Go to Cloud Storage -> mybucket1032 -> LIFECYCLE -> Click on ADD A RULE
+Select an action: Set storage class to Archive
+Select object conditions
+Set Rule Scopes
+Object name matches prefix: myapp3
+Set Conditions:
+Age: 10 days
+Click on CREATE
+
+Cloud Storage - Object Versioning
+Step-01: Introduction
+Create Cloud Storage Bucket
+Enable Object Versioning
+Upload and Verify OBJECT VERSIONING
+Also verify RESTORE operation
+Step-02: Create Cloud Storage Bucket, Enable OBJECT VERSIONING
+# Create Cloud Storage Bucket
+gcloud storage buckets create gs://mybucket1012
+
+# Enable Object Versioning
+Goto Cloud Storage -> mybucket1012 -> PROTECTION Tab
+Enable OBJECT VERSIONING
+
+# Review OLM (LIFECYCLE) Rules creatd by default
+Goto Cloud Storage -> mybucket1012 -> LIFECYCLE Tab
+1. Delete object: Object is noncurrent 2+ newer versions
+2. Delete object: 7+ days since object became noncurrent
+Step-03: Upload multiple versions of file and Verify OBJECT VERSIONING
+# V1: Create, Upload and Verify
+1. echo "myapp v1" > version-demo.txt
+2. gcloud storage cp version-demo.txt gs://mybucket1012
+3. Go to Cloud Storage -> mybucket1012 -> version-demo.txt -> VERSION HISTORY Tab
+4. Verify current version by accessing object
+Goto Cloud Storage -> mybucket1012 -> version-demo.txt -> LIVE OBJECT Tab -> Authenticated URL 
+Observation: should see "myapp v1"
+
+
+# V2: Create, Upload and Verify
+1. echo "myapp v2" > version-demo.txt
+2. gcloud storage cp version-demo.txt gs://mybucket1012
+3. Go to Cloud Storage -> mybucket1012 -> version-demo.txt -> VERSION HISTORY Tab
+4. Verify current version by accessing object
+Goto Cloud Storage -> mybucket1012 -> version-demo.txt -> LIVE OBJECT Tab -> Authenticated URL 
+Observation: should see "myapp v2"
+
+# List All versions of Objects
+gcloud storage ls --all-versions gs://mybucket1012
+gcloud storage ls --all-versions gs://mybucket1012 --long
+gcloud storage ls --all-versions gs://mybucket1012 --full
+Step-04: Verify by running RESTORE
+# Restore Object
+1. Go to Cloud Storage -> mybucket1012 -> version-demo.txt -> VERSION HISTORY Tab
+2. Click on RESTORE for older version "myapp v1"
+3. Observation: New version of object should be created as LIVE OBJECT
+4. Verify current version by accessing object
+Goto Cloud Storage -> mybucket1012 -> version-demo.txt -> LIVE OBJECT Tab -> Authenticated URL 
+Observation: should see "myapp v1"
+
+
+Cloud Storage - Security with ACLs
+Step-01: Introduction
+Manage Bucket Level ACLs
+Manage Object Level ACLs
+Step-02: Manage Bucket Level ACLs
+# Set Project
+gcloud config set project PROJECT_ID
+gcloud config set project gcplearn9
+
+# Create Bucket
+gcloud storage buckets create gs://mybucket1041
+
+# Describe Cloud Storage Bucket
+gcloud storage buckets describe gs://mybucket1041 
+
+# List Default ACLs for a Cloud Storage Bucket
+gcloud storage buckets describe gs://mybucket1041 --format="yaml(default_acl)"
+
+# Apply Predefined Object ACL at Bucket Level
+# private, bucketOwnerRead, bucketOwnerFullControl, projectPrivate, authenticatedRead, publicRead, publicReadWrite
+gcloud storage buckets update gs://BUCKET_NAME --predefined-default-object-acl=PREDEFINED_ACL
+gcloud storage buckets update gs://mybucket1041 --predefined-default-object-acl=publicRead
+
+# List Default ACLs for a Cloud Storage Bucket
+gcloud storage buckets describe gs://mybucket1041 --format="yaml(default_acl)"
+
+# Upload Files
+gcloud storage cp myhtmlfiles/*.html gs://mybucket1041
+
+# Verify by accessing files using browser (Unauthenticated or public urls)
+1. Go to mybucket 1013 -> COPY URL (for each file)
+https://storage.googleapis.com/mybucket1041/v1-index.html
+https://storage.googleapis.com/mybucket1041/v2-index.html
+https://storage.googleapis.com/mybucket1041/v3-index.html
+https://storage.googleapis.com/mybucket1041/v4-index.html
+Step-03: Manage Object Level ACLs
+# Create Bucket
+gcloud storage buckets create gs://mybucket1042
+
+# Upload Files
+gcloud storage cp myhtmlfiles/*.html gs://mybucket1042
+
+# Describe Object
+gcloud storage objects describe gs://mybucket1042/v1-index.html --format="yaml(acl)"
+
+# List acls associated with a specific Object
+gcloud storage objects describe gs://mybucket1042/v1-index.html --format="yaml(acl)"
+
+# Apply Predefined Object ACL at Object Level
+gcloud storage objects update gs://BUCKET_NAME/OBJECT_NAME --predefined-acl=PREDEFINED_ACL_NAME
+gcloud storage objects update gs://mybucket1042/v1-index.html --predefined-acl=publicRead
+
+# List acls associated with a specific Object
+gcloud storage objects describe gs://mybucket1042/v1-index.html --format="yaml(acl)"
+
+# Review Bucket Settings and Objects
+Go to Cloud Storage -> mybucket1042
+
+# Access v1-index.html
+https://storage.googleapis.com/mybucket1042/v1-index.html  
+Observation: Should be accessible
+
+# Access v2-index.html
+https://storage.googleapis.com/mybucket1042/v2-index.html
+Observation: Should throw Access Denied Error
+
+
+Cloud Storage - Security with UBLA and IAM
+Step-01: Introduction
+Manage Bucket Level IAM Policies
+Step-02: Manage Bucket Level IAM Policies
+# Create Bucket
+gcloud storage buckets create gs://mybucket1043 --uniform-bucket-level-access
+Important Note: 
+1. If we want to manage access for individual objects, then we need to switch Access Control to Fine Grained. 
+
+# Upload Files
+gcloud storage cp myhtmlfiles/*.html gs://mybucket1043
+
+# Get IAM Policy (Before apply IAM Role)
+gcloud storage buckets get-iam-policy gs://mybucket1043
+
+# To make all objects in your bucket readable to anyone on the public internet using IAM Members and Roles
+gcloud storage buckets add-iam-policy-binding  gs://mybucket1043 --member=allUsers --role=roles/storage.objectViewer
+
+# Get IAM Policy (After apply IAM Role)
+gcloud storage buckets get-iam-policy gs://mybucket1043
+
+# Review Bucket Settings and Objects
+Go to Cloud Storage -> mybucket1043
+
+# Access URLs
+https://storage.googleapis.com/mybucket1043/v1-index.html  
+Observation: Should be accessible
+Step-05: CleanUp - Delete all Cloud Storage Buckets
+# Delete All files in Buckets and also Delete Bucket
+gcloud storage rm -r gs://mybucket1041
+gcloud storage rm -r gs://mybucket1042
+gcloud storage rm -r gs://mybucket1043
+
+
+classes in storage
+=================
+
+Standard : store data for short term, frequently store data.
+-99.99 availability.
+-retrieval  fee not have 
+
+Nearline : store data less than 30 days
+-retrieval fee included
+
+Coldline : store data quarterly ( 90 days) 
+
+Archive : for yearly it will store data 365 days( lowest cost)
+
+Auto class
+==========
+
+Automatically transition each object to standard t=or nearline class based on object level activity
+
+all data stored in standard clas for 30 days 
+
+data that hasn't been accessed for 30 days will be transition to nearline
+
+colder data that  get accessed will transition back to standard class
+
+object smallest than 128kb excluded by auto class management 
+
+
+OLM(object lifecycle management)
+- automates data management task in google cloud storage
+- automatic transition of infrequent accessed data (not accessed for 30 days) to lower cost storage class such as nearline or coldline
+-also by this rule we can delete the object 
+-to optimize the storage cost and simplifies
+
+under select an action we can choose OLM rule
+
+set rule scopes and set conditions we can choose under this
+
+
+object versioning
+
+-helps to retrieve the deleted or replaced objects
+-object level setting 
+-OLM rules we can use for versioning
+
+-under protection tab we have object versioning option
+
+
+
+Cloud Storage Access control
+============================
+two way 
+
+ACL (access control list) : legacy mechanism
+-fine grained access we can provide by this
+-object based permission we can provide by this
+-need co-ordination b/w cloud IAM and ACL
+-its complex to maintain
+ 
+UBLA (Uniform bucket level access) : new mechanism
+-uniformly access provide to bucket level no object level
+-by cloud IAM alone we can manage permission
+-some features not available in ACL
+managed folder
+iam condition
+domain restricted sharing
+workforce identity federation
+
+
+
+Cloud-Storage-Security-ACLs/
+Directory actionsAdd file
+More options
+Latest commit
+stacksimplify
+stacksimplify
+Welcome to StackSimplify
+bbf3d61
+ · 
+3 months ago
+History
+Breadcrumbsgoogle-cloud-certifications/Cloud-Storage
+/05-Cloud-Storage-Security-ACLs/
+Folders and files
+Name	Last commit message	Last commit date
+parent directory
+..
+myhtmlfiles
+Welcome to StackSimplify
+3 months ago
+README.md
+Welcome to StackSimplify
+3 months ago
+README.md
+Cloud Storage - Security with ACLs
+Step-01: Introduction
+Manage Bucket Level ACLs
+Manage Object Level ACLs
+Step-02: Manage Bucket Level ACLs
+# Set Project
+gcloud config set project PROJECT_ID
+gcloud config set project gcplearn9
+
+# Create Bucket
+gcloud storage buckets create gs://mybucket1041
+
+# Describe Cloud Storage Bucket
+gcloud storage buckets describe gs://mybucket1041 
+
+# List Default ACLs for a Cloud Storage Bucket
+gcloud storage buckets describe gs://mybucket1041 --format="yaml(default_acl)"
+
+# Apply Predefined Object ACL at Bucket Level
+# private, bucketOwnerRead, bucketOwnerFullControl, projectPrivate, authenticatedRead, publicRead, publicReadWrite
+gcloud storage buckets update gs://BUCKET_NAME --predefined-default-object-acl=PREDEFINED_ACL
+gcloud storage buckets update gs://mybucket1041 --predefined-default-object-acl=publicRead
+
+# List Default ACLs for a Cloud Storage Bucket
+gcloud storage buckets describe gs://mybucket1041 --format="yaml(default_acl)"
+
+# Upload Files
+gcloud storage cp myhtmlfiles/*.html gs://mybucket1041
+
+# Verify by accessing files using browser (Unauthenticated or public urls)
+1. Go to mybucket 1013 -> COPY URL (for each file)
+https://storage.googleapis.com/mybucket1041/v1-index.html
+https://storage.googleapis.com/mybucket1041/v2-index.html
+https://storage.googleapis.com/mybucket1041/v3-index.html
+https://storage.googleapis.com/mybucket1041/v4-index.html
+Step-03: Manage Object Level ACLs
+# Create Bucket
+gcloud storage buckets create gs://mybucket1042
+
+# Upload Files
+gcloud storage cp myhtmlfiles/*.html gs://mybucket1042
+
+# Describe Object
+gcloud storage objects describe gs://mybucket1042/v1-index.html --format="yaml(acl)"
+
+# List acls associated with a specific Object
+gcloud storage objects describe gs://mybucket1042/v1-index.html --format="yaml(acl)"
+
+# Apply Predefined Object ACL at Object Level
+gcloud storage objects update gs://BUCKET_NAME/OBJECT_NAME --predefined-acl=PREDEFINED_ACL_NAME
+gcloud storage objects update gs://mybucket1042/v1-index.html --predefined-acl=publicRead
+
+# List acls associated with a specific Object
+gcloud storage objects describe gs://mybucket1042/v1-index.html --format="yaml(acl)"
+
+# Review Bucket Settings and Objects
+Go to Cloud Storage -> mybucket1042
+
+# Access v1-index.html
+https://storage.googleapis.com/mybucket1042/v1-index.html  
+Observation: Should be accessible
+
+# Access v2-index.html
+https://storage.googleapis.com/mybucket1042/v2-index.html
+Observation: Should throw Access Denied Error
+
+
+
+Cloud-Storage-Security-UBLA-IAM/
+Directory actionsAdd file
+More options
+Latest commit
+stacksimplify
+stacksimplify
+Welcome to StackSimplify
+bbf3d61
+ · 
+3 months ago
+History
+Breadcrumbsgoogle-cloud-certifications/Cloud-Storage
+/06-Cloud-Storage-Security-UBLA-IAM/
+Folders and files
+Name	Last commit message	Last commit date
+parent directory
+..
+myhtmlfiles
+Welcome to StackSimplify
+3 months ago
+README.md
+Welcome to StackSimplify
+3 months ago
+README.md
+Cloud Storage - Security with UBLA and IAM
+Step-01: Introduction
+Manage Bucket Level IAM Policies
+Step-02: Manage Bucket Level IAM Policies
+# Create Bucket
+gcloud storage buckets create gs://mybucket1043 --uniform-bucket-level-access
+Important Note: 
+1. If we want to manage access for individual objects, then we need to switch Access Control to Fine Grained. 
+
+# Upload Files
+gcloud storage cp myhtmlfiles/*.html gs://mybucket1043
+
+# Get IAM Policy (Before apply IAM Role)
+gcloud storage buckets get-iam-policy gs://mybucket1043
+
+# To make all objects in your bucket readable to anyone on the public internet using IAM Members and Roles
+gcloud storage buckets add-iam-policy-binding  gs://mybucket1043 --member=allUsers --role=roles/storage.objectViewer
+
+# Get IAM Policy (After apply IAM Role)
+gcloud storage buckets get-iam-policy gs://mybucket1043
+
+# Review Bucket Settings and Objects
+Go to Cloud Storage -> mybucket1043
+
+# Access URLs
+https://storage.googleapis.com/mybucket1043/v1-index.html  
+Observation: Should be accessible
+Step-05: CleanUp - Delete all Cloud Storage Buckets
+# Delete All files in Buckets and also Delete Bucket
+gcloud storage rm -r gs://mybucket1041
+gcloud storage rm -r gs://mybucket1042
+gcloud storage rm -r gs://mybucket1043
+
+
+by default it is ACL(fine grained access) while creating bucket so if we want UBLA (Uniform bucket level access) 
+
+
+
+from GCP dash board use access control 
+uniform for UBLA
+for ACL use fine grained
+
+
+which storage class we use for large video files that r frequently used 
+-standard storage class
+
+company maintain compliance record that must be retained for 7 yrs but are rarely accessed once in a yr 
+-archive storage class
+
+backup system for db that needs to store daily backup, but accessed once or twice in a mnt during data loss events
+-nearline
+
+
+
+u r a media storing archived articles and vedio with occasional requests once in quarter for access from historical researchers 
+-cold line
+
+
+accidentally overwrite a critical document in your clous storage and lost it, how do u overcomes such type of issue in future
+-by enabling object versioning in cloud storage bucket
+
+
+u r a data analyst working with large data set stored in a cloud bucket, and want to move noncurrent object by archiving version older than 6 mnts to lower-cost storage class and dlt them after 1 yr, 
+-by OLM rules
+set storage class to archive for files older than 6 mnts
+delete object older than 1 yr
+
+
+ecommerce business is expanding rapidly an u need a reliable and scalable solution to store and manage ur increasing volume of unstructure data including product image customer data, and transaction records securely , 
+-Google Cloud Storage
+
+in our organization need to store sensitive data financial data only limited person have that access to that file
+-fine grained Access control
+
+ur company operates a media streaming service,where u need to store a vast collection of vesio files ranging from high demand recent toless frequently accessed older content but manually managing storage class for each file is cumbersome and time consuming 
+-storage class autoclass
+
+
+Google AlloyDB for PostgreSQL
+===============================
+
+SQL : use for smaller to medium workload
+web application
+content management system
+general purpose db needs
+-vertical scaling only
+-performance will be low when running complex queries and large datasets
+-low expensive
+-easy to manage
+
+ALL0Ydb
+=======
+
+for high demanding workloads like large data sets
+data warehousing 
+HTAP - Hybrid transactional and Analytical processing
+-both vertical and horizontal scaling
+-delivers high performance and scales up and down to handle varying workloads
+-very expensive
+-management is not easy like sql
+
+4 option in alloydb cluster 
+
+1. production workload ( Highly available)
+2. production workload with read pools ( Highly available with read pools) 
+3. Development and test workloads ( BASIC)
+4. Development and test workloads with read pools( Basic with read pools)
+
+
+
+CLoud Firestore
+================
+
+- its serverless,fully managed ,scalable  document database
+
+2 modes
+=========
+Native Mode(firestore): recommended for all servers , mobile app and webapps
+-automatic replication
+-serverless : scale up and down to meet any demans
+-no maintenance windows or downtime
+-offline support and real time sync
+
+
+oogle Cloud Firestore Fundamentals
+Step-01: Introduction
+Create a Firestore database using gcloud
+Import and Export Data using Web console and gcloud
+Step-02: gcloud: Create Cloud Firestore Instance
+# Project Config
+gcloud config set project PROJECT-ID
+gcloud config set project gcplearn9
+
+# Template: Create Firestore Database 
+gcloud firestore databases create \
+--database=DATABASE_ID \
+--location=LOCATION \
+--type=DATABASE_TYPE \
+
+# Replace values: Create Firestore Database
+gcloud firestore databases create \
+--database=myfirestore2 \
+--location=us-east1 \
+--type=firestore-native
+Additional Notes:
+Two modes
+1. firestore-native
+2. datastore-mode
+
+# List Databases
+gcloud firestore databases list
+
+# Describe Database
+gcloud firestore databases describe --database=myfirestore2
+
+# Update Database (Enable Point in time recovery)
+gcloud firestore databases update --database=myfirestore2 --enable-pitr
+Step-03: Export Data
+Export one or more collection groups: apps
+Destination: myfirestore-exports-101
+Click on EXPORT
+Step-04: Import Data
+Go to Firestore -> myfirestore2 -> Import/Export -> IMPORT
+Filename: myfirestore-exports-101/FILE
+Click on IMPORT
+Go to Data and Verify
+Step-05: Export Data using gcloud from myfirestore1
+# Export Data
+gcloud firestore export gs://mybucket1071/cliexport/ --collection-ids='apps' --database=myfirestore1
+
+# Verify the export files in Cloud Storage Bucket
+Go to Cloud Storage Bucket -> mybucket1071/cliexport/
+Step-06: Import Data using gcloud to myfirestore2
+# Delete Collection
+Go to myfirstore2 -> Data -> Delete Collection -> apps
+
+# Import Data to myfirestore2
+gcloud firestore import gs://mybucket1071/cliexport --collection-ids='apps' --database=myfirestore2
+Step-07: List and Describe Operations using gcloud
+# List and Describe Operations to Get outputUriPrefix
+gcloud firestore operations list --database=myfirestore1
+
+# Describe Operations to Get outputUriPrefix
+gcloud firestore operations describe <OPERATION-NAME>
+gcloud firestore operations describe projects/kdaida123/databases/myfirestore1/operations/ASA5NmYxMmQ0NzNmOTctZTUxYi0xZGU0LThlY2MtNTJiMmM0N2UkGnNlbmlsZXBpcAkKMxI
+Step-08: Delete Firestore Databases
+Go to Firestore -> myfirestore1 -> DELETE
+Go to Firestore -> myfirestore2 -> DELETE
+
+
+Datastore Mode: use datastore mode if your app requires the data store api
+-legacy not recommended
+-fully managed , scalable NOSQL db.
+
+
+Cloud  Datastore
+================
+
+NoSQL fully managed highly scalable and serverless db
+
+
+CLoud BIGTABLE
+================
+-its fully managed NoSQL database
+-its a wide column db
+- it stores data in key-value
+- high reads and write per sec
+- low latency high throughput
+- highly scaling, autoscaling
+
+-Google adpersonalization uses this
+-media youtube
+-twitter ad engagement analytics
+-spotify
+
+
+
+CLoud BIGQUERY
+================
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+cloud audit logs
+==============
+ALL user activity on GCP is logged to cloud audit logs  (who , when ,where)
+
+learn later
+
+
+CLoud DMS (Data Migration Service)
+=====================================
+
+we can migrate our on premise data in to google cloud 
+
+we can replicate data continuously for minimal downtime migration
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                 
+
+
+
+
+
+
+
+-
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

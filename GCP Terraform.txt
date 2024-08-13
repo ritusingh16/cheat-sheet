@@ -1,0 +1,3839 @@
+https://github.com/stacksimplify/terraform-on-google-cloud/tree/main/01-Terraform-Install-Tools
+
+gcloud auth list
+
+gcloud auth application-default login
+
+These credentials will be used by any library that requests Application Default Credentials (ADC).
+
+
+work flow
+========
+
+init : terraform init
+======================
+
+-it will initialize a working dir containing the terraform config
+-it will download the providers 
+
+
+validate  : terraform validate 
+===============================
+-validate the configuration file (syntax valid and internally consistence or not )
+
+
+plan : terraform plan 
+======================
+-it will create a plan what all resources it will be created we need to review the plan 
+-execution plan created
+-what we want as a desired state that it will plan
+
+
+apply : terraform apply
+======================
+apply the changes on cloud (Infra)
+we get desired infra
+
+
+destroy: terraform 
+==================
+
+it will destroy the infra
+
+terraform init and validate is a local command  but plan and apply destroy is not a local command
+
+
+create from terraform
+========================
+
+
+vpc>region>subnet>zone>vm  then user able to connect it
+
+
+terraform lang basic - file
+
+-store the file in .tf file also we can json based model too but that is very rare
+- all the file need to be stored in one directory
+
+
+configuration syntax
+===================
+
+HCL ( hashicorp lang)
+
+below template have block, identifiers and expression
+
+resource "google_compute_network" "myvpc" {
+  name = "vpc1"
+  auto_create_subnetworks = false   
+}
+
+
+<BLOCK TYPE> "<BLOCK LABEL>" "<BLOCK LABEL>" {
+
+<IDENTIFIERS or argument name>= <EXPRESSION or argument value>
+
+}
+
+variable willhave only one block label
+
+resources have 2 block label
+
+2 type of blocks
+
+block inside block like tag and all
+
+
+3 type of blocks
+
+fundamental blocks ( provider, resource,terraform block)
+
+variable block  ( input variable , output varaiblr, local value)
+
+calling /referencing blocks( data source, module )
+
+import, moved ,removed ,check and blocks are added new
+
+
+
+terraform block : special blocks used to configure some behaviors like specifying terraform particular version , specifying provider requirement, configure a terraform backend ( terraform state file)
+
+
+Provider block : heart of terraform
+
+-it provides to interact with remote system
+- declare provider so that it can be installed
+- provider module belong to root module
+
+
+resource block :
+-it define what resource we will create 
+
+terraform block/terraform setting block/terraform configuration block  are all same
+
+
+use to store tf state file in bucket we have to define in backend block 
+
+in this block 9terraform)only constant data is stored we cannot store variable and all 
+
+  
+terraform must store state about our infra and config
+
+so it is stored in terraform.tf file by terraform
+
+mapping info is present what is created by which tf file,to keep tract of metadata
+
+terraform.tf contain current state of infra 
+
+
+terraform state list
+
+terraform state show (shown resource from list put here)
+
+
+Resource META arguments (multiple providers)
+============================================
+
+Meta arguments types
+
+-depend_on
+-count
+-for_each
+-provider
+-lifecycle
+
+provider Meta arguments
+========================
+
+if we have multiple configuration for same providers and want to use one on a per resource or per module 
+
+then use alias and call that provide from name.alias name
+
+eg :  (multiple providers)
+
+===========================
+
+provider "google" {
+    project = "faltu-428904"
+    region = "us-central"
+    alias = "us-central"
+  
+}
+
+provider "google" {
+    project = "faltu-428904"
+    region = "europe-westl"
+     alias  = "europe-westl"
+}
+
+
+
+
+resource "google_compute_subnetwork" "subnet1" {
+
+   name = "mysubnet1"
+    provider = google.us-central1
+    ip_cidr_range = "10.128.0.0/20"
+    network = google_compute_network.myvpc.id  
+
+}
+
+
+resource "google_compute_subnetwork" "subnet2" {
+
+    name = "mysubnet2"
+    provider = google.europe-westl
+    ip_cidr_range = "10.128.1.0/20"
+    network = google_compute_network.myvpc.id  
+
+}
+
+usage
+=======
+-for supporting multiple provider , multiple cloud
+-for supporting  multiple environments   dev , prod etc
+- if we dont provide alias name then it becomes by default provider
+-how to call <provider name>. <alias>
+
+
+Terraform Input Variables and output Values
+===========================================
+
+Inputs variable : customize the terraform resources or modules w/o altering the souirce code
+
+
+
+
+Define Input Variables in Terraform
+Terraform Input Variables
+# GCP Project
+variable "gcp_project" {
+  description = "Project in which GCP Resources to be created"
+  type = string
+  default = "gcplearn9"
+}
+
+# GCP Region
+variable "gcp_region" {
+  description = "Region in which GCP Resources to be created"
+  type = string
+  default = "us-central1"
+}
+
+# GCP Compute Engine Machine Type
+variable "machine_type" {
+  description = "Compute Engine Machine Type"
+  type = string
+  default = "e2-micro"
+}
+Step-03: Reference the variables in respective .tffies
+# c1-versions.tf
+provider "google" {
+  project = var.gcp_project
+  region = var.gcp_region
+}
+
+# c3-vpc.tf
+resource "google_compute_subnetwork" "mysubnet" {
+  name = "${var.gcp_region1}-subnet"
+  region = var.gcp_region1
+  ip_cidr_range = "10.128.0.0/20"
+  network = google_compute_network.myvpc.id 
+}
+
+# c5-vminstance.tf
+resource "google_compute_instance" "myvm" {
+  name         = "myvm1"
+  machine_type = var.machine_type
+  zone         = var.gcp_region1
+Step-04: Variable Definition Option: terraform.tfvars
+We can define the variables
+# terraform.tfvars
+gcp_project   = "gcplearn9"
+gcp_region1   = "us-central1"
+machine_type  = "e2-micro"
+
+# Execute Terraform Commands
+# Terraform Init
+terraform init
+
+# Terraform Validate
+terraform validate
+
+# Terraform Plan
+terraform plan
+Observation:
+1. Review VM Instance machine_type
+2. It should be loaded from terraform.tfvars
+Step-06: Variable Definition Option: vm.auto.tfvars
+# vm.auto.tfvars
+machine_type  = "e2-medium"
+
+# Terraform Plan
+terraform plan
+Observation:
+1. Review VM Instance machine_type
+2. It should be loaded from vm.auto.tfvars
+3. So, so far we have seen three ways
+3.1 vm.auto.tfvars - First Priority
+3.2 terraform.tfvars - Second Priority
+3.3 variables.tf - default value defined in variables.tf
+Step-07: Variable Definition Option: vm.tfvars
+# vm.tfvars
+machine_type  = "e2-standard-8"
+
+# Terraform Plan
+terraform plan
+Observation:
+1. Review VM Instance machine_type
+2. It should be loaded from vm.auto.tfvars
+3. We need to explicity pass the vm.tfvars to terraform commands
+
+# Terraform plan
+terraform plan --var-file=vm.tfvars
+Observation:
+1. Review VM Instance machine_type
+2. It should be loaded from vm.tfvars whose value is e2-standard-8
+3. In short, what-ever we pass via --var-file or --var flags will be having higher priority than anyother options
+Step-07: Variable Definition Option: Directly pass it in command
+# Terraform plan
+terraform plan --var=machine_type=e2-standard-4
+Observation:
+1. Review VM Instance machine_type
+2. It should be loaded from the command whose value is e2-standard-4
+Step-08: Comment values in vm.auto.tfvars and vm.tfvars
+We will use machine_type = "e2-micro" from terraform.tfvars going forward.
+We have created other two files just to learn the multiple options available
+# vm.auto.tfvars
+# machine_type  = "e2-medium"
+
+# vm.tfvars
+# machine_type  = "e2-standard-2"
+Step-09: Input Variables as Environment Variables (Unix or Linux Environments)
+# Comment machine_type in terraform.tfvars
+#machine_type  = "e2-micro"
+
+# Set Environment Variable
+export TF_VAR_machine_type="e2-standard-2"
+echo $TF_VAR_machine_type
+
+# Run Terraform Plan
+terraform plan
+Observation: Machine type configured will be "e2-standard-2" from environment variable set
+
+# Unset Environment variable
+unset TF_VAR_machine_type
+echo $TF_VAR_machine_type
+
+# Run Terraform Plan
+terraform plan
+Observation: Machine type configured will be "e2-small" from variables.tf default value
+
+# Variable Precendence
+Priority-1: Any -var and -var-file options on the command line, in the order they are provided. 
+Priority-2: Any *.auto.tfvars or *.auto.tfvars.json files, processed in lexical order of their filenames.
+Priority-3: The terraform.tfvars.json file, if present.
+Priority-4: The terraform.tfvars file, if present.
+Priority-5: Environment variables
+
+# Comment machine_type in terraform.tfvars
+machine_type  = "e2-micro"
+Step-10: c6-output-values.tf - Define Output Values
+Output Values
+# Terraform Output Values
+## ATTRIBUTES
+output "vm_instanceid" {
+  description = "VM Instance ID"
+  value = google_compute_instance.myapp1.instance_id
+}
+
+output "vm_selflink" {
+  description = "VM Instance Self link"
+  value = google_compute_instance.myapp1.self_link
+}
+
+output "vm_id" {
+  description = "VM ID"
+  value = google_compute_instance.myapp1.id
+}
+
+output "vm_external_ip" {
+  description = "VM External IPs"
+  value = google_compute_instance.myapp1.network_interface.0.access_config.0.nat_ip
+}
+
+## ARGUMENTS
+output "vm_name" {
+  description = "VM Name"
+  value = google_compute_instance.myapp1.name
+}
+
+output "vm_machine_type" {
+  description = "VM Machine Type"
+  value = google_compute_instance.myapp1.machine_type
+}
+Step-11: Execute Terraform Commands
+# Terraform Initialize
+terraform init
+Observation:
+1) Initialized Local Backend
+2) Downloaded the provider plugins (initialized plugins)
+3) Review the folder structure ".terraform folder"
+
+# Terraform Validate
+terraform validate
+Observation:
+1) If any changes to files, those will come as printed in stdout (those file names will be printed in CLI)
+
+# Terraform Plan
+terraform plan
+1) Verify the number of resources that going to get created
+2) Verify the variable replacements worked as expected
+
+# Terraform Apply
+terraform apply 
+[or]
+terraform apply -auto-approve
+Observations:
+1) Create resources on cloud
+2) Created terraform.tfstate file when you run the terraform apply command
+Step-12: Access Application
+# Access index.html
+http://<EXTERNAL-IP>/index.html
+http://<EXTERNAL-IP>/app1/index.html
+Step-13: Clean-Up
+# Terraform Destroy
+terraform plan -destroy  # You can view destroy plan using this command
+terraform destroy
+
+# Clean-Up Files
+rm -rf .terraform*
+rm -rf terraform.tfstate*
+
+
+BEnefits:
+==========
+
+code reusable
+
+variable.tf
+terraform.tf
+vm.auto.tfvars
+vm.tfvars
+Environemnt variable
+--var-file flag
+--var flag
+
+
+
+-terraform.tfvars content override variable.tf
+
+-vm.auto.tfvars content override terraform.tfvars
+
+Observation:
+1. Review VM Instance machine_type
+2. It should be loaded from vm.auto.tfvars
+3. So, so far we have seen three ways
+3.1 vm.auto.tfvars - First Priority
+3.2 terraform.tfvars - Second Priority
+3.3 variables.tf - default value defined in variables.tf
+
+# Terraform Plan
+terraform plan
+Observation:
+1. Review VM Instance machine_type
+2. It should be loaded from vm.auto.tfvars
+3. We need to explicity pass the vm.tfvars to terraform commands
+
+# Terraform plan
+terraform plan --var-file=vm.tfvars
+Observation:
+1. Review VM Instance machine_type
+2. It should be loaded from vm.tfvars whose value is e2-standard-8
+3. In short, what-ever we pass via --var-file or --var flags will be having higher priority than anyother options
+
+
+-terraform.tfvar override export environment varable
+
+
+Priority-1: Any -var and -var-file options on the command line, in the order they are provided. 
+Priority-2: Any *.auto.tfvars or *.auto.tfvars.json files, processed in lexical order of their filenames.
+Priority-3: The terraform.tfvars.json file, if present.
+Priority-4: The terraform.tfvars file, if present.
+Priority-5: Environment variables
+
+
+output value
+=========
+
+-return value
+-provide o/p value about infra on command line
+
+# Terraform Output Values
+## ATTRIBUTES
+output "vm_instanceid" {
+  description = "VM Instance ID"
+  value = google_compute_instance.myapp1.instance_id
+}
+
+output "vm_selflink" {
+  description = "VM Instance Self link"
+  value = google_compute_instance.myapp1.self_link
+}
+
+output "vm_id" {
+  description = "VM ID"
+  value = google_compute_instance.myapp1.id
+}
+
+output "vm_external_ip" {
+  description = "VM External IPs"
+  value = google_compute_instance.myapp1.network_interface.0.access_config.0.nat_ip
+}
+
+## ARGUMENTS
+output "vm_name" {
+  description = "VM Name"
+  value = google_compute_instance.myapp1.name
+}
+
+output "vm_machine_type" {
+  description = "VM Machine Type"
+  value = google_compute_instance.myapp1.machine_type
+}
+Step-11: Execute Terraform Commands
+# Terraform Initialize
+terraform init
+Observation:
+1) Initialized Local Backend
+2) Downloaded the provider plugins (initialized plugins)
+3) Review the folder structure ".terraform folder"
+
+# Terraform Validate
+terraform validate
+Observation:
+1) If any changes to files, those will come as printed in stdout (those file names will be printed in CLI)
+
+# Terraform Plan
+terraform plan
+1) Verify the number of resources that going to get created
+2) Verify the variable replacements worked as expected
+
+# Terraform Apply
+terraform apply 
+[or]
+terraform apply -auto-approve
+Observations:
+1) Create resources on cloud
+2) Created terraform.tfstate file when you run the terraform apply command
+Step-12: Access Application
+# Access index.html
+http://<EXTERNAL-IP>/index.html
+http://<EXTERNAL-IP>/app1/index.html
+Step-13: Clean-Up
+# Terraform Destroy
+terraform plan -destroy  # You can view destroy plan using this command
+terraform destroy
+
+# Clean-Up Files
+rm -rf .terraform*
+rm -rf terraform.tfstate*
+
+
+terraform apply -destroy -auto-approve
+
+Meta ARGUMENT COUNT
+====================
+
+-by default only single resource is created 
+-if we want similar resources to be created usin same block we can use count
+
+like 2 Vms, 2 Env etc etc
+
+
+count.index we can use for numbering multiple vms
+
+index start with 0
+
+
+
+
+# Resource Block: Create a single Compute Engine instance
+resource "google_compute_instance" "myapp1" {
+  # Meta-Argument: count
+  count = 2
+  name         = "myapp1-vm-${count.index}"
+  machine_type = var.machine_type
+  zone         = var.gcp_region1
+  tags        = [tolist(google_compute_firewall.fw_ssh.target_tags)[0], tolist(google_compute_firewall.fw_http.target_tags)[0]]
+
+  boot_disk {
+    initialize_params {
+      image = "debian-cloud/debian-12"
+    }
+  }
+
+  # Install Webserver
+  metadata_startup_script = file("${path.module}/app1-webserver-install.sh")
+
+  network_interface {
+    subnetwork = google_compute_subnetwork.mysubnet.id   
+    access_config {
+      # Include this section to give the VM an external IP address
+    }
+  }
+}
+Step-03: c6-output-values.tf - Learn the following concepts
+For Loop with List
+For Loop with Map
+For Loop with Map Advanced
+Legacy Splat Operator (latest) - Returns List
+Latest Generalized Splat Operator - Returns the List
+# Terraform Output Values
+/* Concepts Covered
+1. For Loop with List
+2. For Loop with Map
+3. For Loop with Map Advanced
+4. Legacy Splat Operator (latest) - Returns List
+5. Latest Generalized Splat Operator - Returns the List
+*/
+
+# Get each list item separately
+output "vm_name_0" {
+  description = "VM Name"
+  value = google_compute_instance.myapp1[0].name
+}
+
+# Get each list item separately
+output "vm_name_1" {
+  description = "VM Name"
+  value = google_compute_instance.myapp1[1].name
+}
+
+# Output - For Loop with List
+output "for_output_list" {
+  description = "For Loop with List"
+  value = [for instance in google_compute_instance.myapp1: instance.name]
+}
+
+
+# Output - For Loop with Map
+output "for_output_map1" {
+  description = "For Loop with Map"
+  value = {for instance in google_compute_instance.myapp1: instance.name => instance.instance_id}
+}
+
+# Output - For Loop with Map Advanced
+output "for_output_map2" {
+  description = "For Loop with Map - Advanced"
+  value = {for c, instance in google_compute_instance.myapp1: c => instance.name}
+}
+
+# Output - For Loop with Map Advanced
+output "for_output_map3" {
+  description = "For Loop with Map - Advanced (Instance Name and Instance ID)"
+  value = {for c, instance in google_compute_instance.myapp1: instance.name => instance.instance_id}
+}
+
+# VM External IPs
+output "vm_external_ips" {
+  description = "For Loop with Map - Advanced"
+  value = {for c, instance in google_compute_instance.myapp1: c => instance.network_interface.0.access_config.0.nat_ip}
+}
+
+
+# Output Legacy Splat Operator (Legacy) - Returns the List
+output "legacy_splat_instance" {
+  description = "Legacy Splat Operator"
+  value = google_compute_instance.myapp1.*.name
+}
+
+# Output Latest Generalized Splat Operator - Returns the List
+output "latest_splat_instance" {
+  description = "Generalized latest Splat Operator"
+  value = google_compute_instance.myapp1[*].name 
+}
+
+/* 
+------- FOR SINGLE VM INSTANCE -------
+# Terraform Output Values
+## ATTRIBUTES
+output "vm_instanceid" {
+  description = "VM Instance ID"
+  value = google_compute_instance.myapp1.instance_id
+}
+
+output "vm_selflink" {
+  description = "VM Instance Self link"
+  value = google_compute_instance.myapp1.self_link
+}
+
+output "vm_id" {
+  description = "VM ID"
+  value = google_compute_instance.myapp1.id
+}
+
+## ARGUMENTS
+output "vm_name" {
+  description = "VM Name"
+  value = google_compute_instance.myapp1.name
+}
+
+output "vm_machine_type" {
+  description = "VM Machine Type"
+  value = google_compute_instance.myapp1.machine_type
+}
+*/
+Step-04: Execute Terraform Commands
+# Terraform Initialize
+terraform init
+
+# Terraform Validate
+terraform validate
+
+# Terraform Plan
+terraform plan
+
+# Terraform Apply
+terraform apply
+Step-05: Verify VM Instances
+Go to Google Cloud -> Compute Engine -> VM Instances
+Observation: Both VM Instances will be created in same zone
+Step-06: Clean-Up
+# Terraform Destroy
+terraform destroy -auto-approve
+
+
+FOR EXPRESSION
+===============
+
+
+-looping through maps, lists , maps and sets
+
+
+Terraform Datasources
+========================
+
+- allow terraform to use data outside of terraform
+- it is accessed using data block
+
+datasource.tf
+# Terraform Datasources
+data "google_compute_zones" "available" {    
+  status = "UP"
+}
+
+# Output value
+output "compute_zones" {
+  description = "List of compute zones"
+  value = data.google_compute_zones.available.names
+}
+Step-03: c6-01-vminstance.tf
+# Resource Block: Create a single Compute Engine instance
+resource "google_compute_instance" "myapp1" {
+  # Meta-Argument: count
+  count = 2
+  name         = "myapp1-vm-${count.index}"
+  machine_type = var.machine_type
+  zone         = data.google_compute_zones.available.names[count.index]
+  tags        = [tolist(google_compute_firewall.fw_ssh.target_tags)[0], tolist(google_compute_firewall.fw_http.target_tags)[0]]
+
+  boot_disk {
+    initialize_params {
+      image = "debian-cloud/debian-12"
+    }
+  }
+
+  # Install Webserver
+  metadata_startup_script = file("${path.module}/app1-webserver-install.sh")
+
+  network_interface {
+    subnetwork = google_compute_subnetwork.mysubnet.id   
+    access_config {
+      # Include this section to give the VM an external IP address
+    }
+  }
+}
+Step-04: Execute Terraform Commands
+# Terraform Initialize
+terraform init
+
+# Terraform Validate
+terraform validate
+
+# Terraform Plan
+terraform plan
+
+# Terraform Apply
+terraform apply
+Step-05: Verify VM Instances
+Go to Google Cloud -> Compute Engine -> VM Instances
+Observation: VM Instances will be created in two different zones in a region
+Step-06: Clean-Up
+# Terraform Destroy
+terraform destroy -auto-approve
+
+
+META-ARGUMENT (for_each)
+-by default only one instance is created using one block
+
+- for_each accept map or set of string
+
+
+6-01-vminstance.tf
+# Resource Block: Create a single Compute Engine instance
+resource "google_compute_instance" "myapp1" {
+  # Meta-Argument: for_each
+  for_each = toset(data.google_compute_zones.available.names)
+  name         = "myapp1-vm-${each.key}"
+  machine_type = var.machine_type
+  zone        = each.key # You can also use each.value because for list items each.key == each.value
+  tags        = [tolist(google_compute_firewall.fw_ssh.target_tags)[0], tolist(google_compute_firewall.fw_http.target_tags)[0]]
+
+  boot_disk {
+    initialize_params {
+      image = "debian-cloud/debian-12"
+    }
+  }
+
+  # Install Webserver
+  metadata_startup_script = file("${path.module}/app1-webserver-install.sh")
+
+  network_interface {
+    subnetwork = google_compute_subnetwork.mysubnet.id   
+    access_config {
+      # Include this section to give the VM an external IP address
+    }
+  }
+}
+Step-02-02: c6-02-vminstance-outputs.tf
+# Terraform Output Values
+# Output - For with list
+output "for_output_list1" {
+  description = "For Loop with List"
+  value = [for instance in google_compute_instance.myapp1: instance.name]
+}
+
+# Output - For Loop with Map 
+output "for_output_map1" {
+  description = "For Loop with Map1"
+  value = {for instance in google_compute_instance.myapp1: instance.name => instance.instance_id}
+}
+
+# Output - VM External IPs
+output "vm_external_ips" {
+  description = "VM Instance Names -> VM External IPs"
+  value = {for instance in google_compute_instance.myapp1: instance.name => instance.network_interface.0.access_config.0.nat_ip}
+}
+Step-02-03: Execute Terraform Commands
+# Change Directory
+cd D1-terraform-manifests
+
+# Terraform Initialize
+terraform init
+
+# Terraform Validate
+terraform validate
+
+# Terraform Plan
+terraform plan
+
+# Terraform Apply
+terraform apply
+Step-02-04: Verify VM Instances
+Go to Google Cloud -> Compute Engine -> VM Instances
+Observation:
+VM Instances will be created in each and every zone.
+If we have 4 zones in that region, 4 VM instances will be created
+Step-02-05: Clean-Up
+# Terraform Destroy
+terraform destroy -auto-approve
+Step-03: Demo02: D2-terraform-manifests
+We are going to use map values for for_each
+Step-03-01: c6-01-vminstance.tf
+# Define a map with zone as key and machine_type as value
+variable "zone_machine_map" {
+  type = map(string)
+  default = {
+    "us-central1-a" = "e2-micro"
+    "us-central1-b" = "e2-small"
+    "us-central1-c" = "e2-medium"
+  }
+}
+# Resource Block: Create a Compute Engine instance
+resource "google_compute_instance" "myapp1" {
+  # Meta-Argument: for_each
+  for_each = var.zone_machine_map
+  name         = "myapp1-vm-${each.key}"
+  machine_type = each.value
+  zone         = each.key
+  tags = [
+    tolist(google_compute_firewall.fw_ssh.target_tags)[0],
+    tolist(google_compute_firewall.fw_http.target_tags)[0]
+  ]
+  boot_disk {
+    initialize_params {
+      image = "debian-cloud/debian-12"
+    }
+  }
+  # Install Webserver
+  metadata_startup_script = file("${path.module}/app1-webserver-install.sh")
+  network_interface {
+    subnetwork = google_compute_subnetwork.mysubnet.id   
+    access_config {
+      # Include this section to give the VM an external IP address
+    }
+  }
+}
+Step-03-02: Execute Terraform Commands
+# Change Directory
+cd D2-terraform-manifests
+
+# Terraform Initialize
+terraform init
+
+# Terraform Validate
+terraform validate
+
+# Terraform Plan
+terraform plan
+
+# Terraform Apply
+terraform apply
+Step-03-03: Verify VM Instances
+Go to Google Cloud -> Compute Engine -> VM Instances
+Observation:
+VM Instances will be created with different machine types
+Step-03-04: Clean-Up
+# Terraform Destroy
+terraform destroy -auto-approve
+
+
+-each.key = each.value in set 
+
+
+
+
+
+
+
+
+
+
+
+
+
+Terraform Local Value
+=====================
+
+- assign a name to an expression
+- so that it make it simple 
+- we can use it multiple time and it make it readable
+- easy to manage
+
+
+owner = var.business_division
+environment = var.environment
+name = "${var.business_division}-${var.environment}"
+
+instead use 
+
+name = "{local.owners}-${local.environment}"
+
+
+
+variables.tf
+# Environment Variable
+variable "environment" {
+  description = "Environment Variable used as a prefix"
+  type = string
+  default = "dev"
+}
+
+# Business Division
+variable "business_divsion" {
+  description = "Business Division in the large organization this Infrastructure belongs"
+  type = string
+  default = "sap"
+}
+Step-03: c2-02-local-values.tf
+# Define Local Values in Terraform
+locals {
+  owners = var.business_divsion
+  environment = var.environment
+  name = "${var.business_divsion}-${var.environment}"
+  #name = "${local.owners}-${local.environment}"
+  common_tags = {
+    owners = local.owners
+    environment = local.environment
+  }
+} 
+Step-04: terraform.tfvars
+gcp_project     = "gcplearn9"
+gcp_region1     = "us-central1"
+machine_type    = "e2-micro"
+environment     = "dev"
+business_divsion = "hr"
+Step-06: c3-vpc.tf
+Update name attribute
+# Resource: VPC
+resource "google_compute_network" "myvpc" {
+  name = "${local.name}-vpc"
+  auto_create_subnetworks = false   
+}
+Step-07: c4-firewalls.tf
+Update name attribute
+# Firewall Rule: SSH
+resource "google_compute_firewall" "fw_ssh" {
+  name = "${local.name}-fwrule-allow-ssh22"
+  allow {
+    ports    = ["22"]
+    protocol = "tcp"
+  }
+  direction     = "INGRESS"
+  network       = google_compute_network.myvpc.id 
+  priority      = 1000
+  source_ranges = ["0.0.0.0/0"]
+  target_tags   = ["ssh-tag"]
+}
+
+# Firewall Rule: HTTP Port 80
+resource "google_compute_firewall" "fw_http" {
+  name = "${local.name}-fwrule-allow-http80"
+  allow {
+    ports    = ["80"]
+    protocol = "tcp"
+  }
+  direction     = "INGRESS"
+  network       = google_compute_network.myvpc.id 
+  priority      = 1000
+  source_ranges = ["0.0.0.0/0"]
+  target_tags   = ["webserver-tag"]
+}
+Step-08: c5-datasource.tf
+Terraform Datasource to get VM Image Information
+# Datasource: Get information about a Google Compute Image
+data "google_compute_image" "my_image" {
+  #Debian
+  project = "debian-cloud"  
+  family  = "debian-12"
+  
+  # CentOs
+  #project = "centos-cloud"  
+  #family  = "centos-stream-9"
+
+  # RedHat
+  #project = "rhel-cloud" 
+  #family  = "rhel-9"
+  
+  # Ubuntu
+  #project = "ubuntu-os-cloud"
+  #family  = "ubuntu-2004-lts"
+
+  # Microsoft
+  #project = "windows-cloud"
+  #family  = "windows-2022"
+
+  # Rocky Linux
+  #project = "rocky-linux-cloud"
+  #family  = "rocky-linux-8"
+}
+
+
+# Outputs
+output "vmimage_project" {
+  value = data.google_compute_image.my_image.project
+}
+
+output "vmimage_family" {
+  value = data.google_compute_image.my_image.family
+}
+
+output "vmimage_name" {
+  value = data.google_compute_image.my_image.name
+}
+
+output "vmimage_image_id" {
+  value = data.google_compute_image.my_image.image_id
+}
+
+output "vmimage_status" {
+  value = data.google_compute_image.my_image.status
+}
+
+output "vmimage_id" {
+  value = data.google_compute_image.my_image.id
+}
+
+output "vmimage_self_link" {
+  value = data.google_compute_image.my_image.self_link
+}
+
+output "vmimage_info" {
+  value = {
+    project  = data.google_compute_image.my_image.project
+    family   = data.google_compute_image.my_image.family
+    name     = data.google_compute_image.my_image.name
+    image_id = data.google_compute_image.my_image.image_id
+    status   = data.google_compute_image.my_image.status
+    id       = data.google_compute_image.my_image.id
+    self_link = data.google_compute_image.my_image.self_link
+  }
+}
+Step-09: c6-01-app1-instance-template.tf
+GCP Instance Templates
+# Google Compute Engine: Regional Instance Template
+resource "google_compute_region_instance_template" "myapp1" {
+  name        = "${local.name}-myapp1-template"
+  description = "This template is used to create MyApp1 server instances."
+  tags        = [tolist(google_compute_firewall.fw_ssh.target_tags)[0], tolist(google_compute_firewall.fw_http.target_tags)[0]]
+  instance_description = "MyApp1 VM Instances"
+  machine_type         = var.machine_type
+  scheduling {
+    automatic_restart   = true
+    on_host_maintenance = "MIGRATE"
+  }
+  # Create a new boot disk from an image
+  disk {
+    #source_image      = "debian-cloud/debian-12"
+    source_image      = data.google_compute_image.my_image.self_link
+    auto_delete       = true
+    boot              = true
+  }
+  # Network Info
+  network_interface {
+    subnetwork = google_compute_subnetwork.mysubnet.id 
+    access_config {
+      # Include this section to give the VM an external IP address
+    }  
+  }
+  # Install Webserver
+  metadata_startup_script = file("${path.module}/app1-webserver-install.sh")
+
+  labels = {
+    environment = local.environment
+  }
+  metadata = {
+    environment = local.environment
+  }
+}
+Step-10: c6-02-vminstance.tf
+# Resource Block: Create a Compute Engine VM instance
+resource "google_compute_instance_from_template" "myapp1" {
+ # Meta-Argument: for_each
+  for_each = toset(data.google_compute_zones.available.names)
+  name         = "${local.name}-myapp1-vm-${each.key}"  
+  zone        = each.key # You can also use each.value because for list items each.key == each.value
+  source_instance_template = google_compute_region_instance_template.myapp1.self_link
+}
+Step-11: c6-03-vminstance-outputs.tf
+# Terraform Output Values
+# Output - For with list
+output "instance_names" {
+  description = "VM Instance Names"
+  value = [for instance in google_compute_instance_from_template.myapp1: instance.name]
+}
+
+# Output - For Loop with Map 
+output "vm_instance_ids" {
+  description = "VM Instances Names -> VM Instance IDs"
+  value = {for instance in google_compute_instance_from_template.myapp1: instance.name => instance.instance_id}
+}
+
+output "vm_external_ips" {
+  description = "VM Instance Names -> VM External IPs"
+  value = {for instance in google_compute_instance_from_template.myapp1: instance.name => instance.network_interface.0.access_config.0.nat_ip}
+}
+Step-12: Execute Terraform Commands
+# Terraform Initialize
+terraform init
+
+# Terraform Validate
+terraform validate
+
+# Terraform Plan
+terraform plan
+
+# Terraform Apply
+terraform apply
+Step-13: Verify VM Instances
+Go to Google Cloud -> Compute Engine -> VM Instances
+Observation: VM Instances will be created in all available zones in a region
+Step-14: Clean-Up
+# Terraform Destroy
+terraform destroy -auto-approve
+
+
+we hiding expression so if we use it(local) more then it make complex to future reader maintainer
+
+How many type of instance groups in GCP
+=====================================
+
+unmanaged Instance group
+managed Instance group stateless
+managed Instance group stateful
+
+Introduction
+MIG Healthcheck: google_compute_region_health_check
+MIG Stateless: google_compute_region_instance_group_manager
+MIG Autoscaling: google_compute_region_autoscaler
+Step-02: c6-02-app1-mig-healthcheck.tf
+google_compute_region_health_check
+# Resource: Regional Health Check
+resource "google_compute_region_health_check" "myapp1" {
+  name                = "${local.name}-myapp1"
+  check_interval_sec  = 5
+  timeout_sec         = 5
+  healthy_threshold   = 2
+  unhealthy_threshold = 3
+  http_health_check {
+    request_path = "/index.html"
+    port         = 80
+  }
+}
+Step-03: c6-03-app1-mig.tf
+google_compute_region_instance_group_manager
+# Resource: Managed Instance Group
+resource "google_compute_region_instance_group_manager" "myapp1" {
+  name                       = "${local.name}-myapp1-mig"
+  base_instance_name         = "${local.name}-myapp1"
+  region                     = var.gcp_region1
+  distribution_policy_zones  = data.google_compute_zones.available.names
+  # Instance Template
+  version {
+    instance_template = google_compute_region_instance_template.myapp1.id
+  }
+  # Named Port
+  named_port {
+    name = "webserver"
+    port = 80
+  }
+  # Autosclaing
+  auto_healing_policies {
+    health_check      = google_compute_region_health_check.myapp1.id
+    initial_delay_sec = 300
+  }
+}
+Step-04: c6-04-app1-mig-autoscaling.tf
+google_compute_region_autoscaler
+# Resource: MIG Autoscaling
+resource "google_compute_region_autoscaler" "myapp1" {
+  name   = "${local.name}-myapp1-autoscaler"
+  target = google_compute_region_instance_group_manager.myapp1.id
+  autoscaling_policy {
+    max_replicas    = 6
+    min_replicas    = 2
+    cooldown_period = 60 
+    cpu_utilization {
+      target = 0.9
+    }
+  }
+}
+Step-05: c6-05-app1-mig-outputs.tf
+# Terraform Output Values
+output "myapp1_mig_id" {
+  value = google_compute_region_instance_group_manager.myapp1.id 
+}
+
+output "myapp1_mig_instance_group" {
+  value = google_compute_region_instance_group_manager.myapp1.instance_group
+}
+
+output "myapp1_mig_self_link" {
+  value = google_compute_region_instance_group_manager.myapp1.self_link
+}
+
+output "myapp1_mig_status" {
+  value = google_compute_region_instance_group_manager.myapp1.status
+}
+Step-06: Execute Terraform Commands
+# Terraform Initialize
+terraform init
+
+# Terraform Validate
+terraform validate
+
+# Terraform Plan
+terraform plan
+
+# Terraform Apply
+terraform apply
+Step-07: Verify VM Instances
+Go to Google Cloud -> Compute Engine, verify
+Managed Instance Groups
+VM Instances
+Key Observation: VM Instances will have external or public IP assigned
+Step-08: Clean-Up
+# Terraform Destroy
+terraform destroy -auto-approve
+
+
+
+Load Balancer Example
+======================
+
+-its distribute traffic across multiple instances 
+-primarily used for providing HIGH AVAILABILITY
+-we have global and regional 
+ 
+ingress LB called as layer 7 LB
+rest all are layer 4 LB
+
+List resources:
+
+terraform state list
+
+  data.terraform_remote_state.rg
+  azurerm_postgresql_database.postgresql_database
+  azurerm_postgresql_server.postgresql_server
+Remove resource
+
+terraform destroy -target azurerm_postgresql_database.postgresql_database -auto-approve
+
+Introduction
+google_compute_address
+google_compute_region_health_check
+google_compute_region_backend_service
+google_compute_region_url_map
+google_compute_region_target_http_proxy
+google_compute_forwarding_rule
+google_compute_subnetwork
+Step-02: c7-01-loadbalancer.tf: Regional Static IP
+google_compute_address
+# Resource: Reserve Regional Static IP Address
+resource "google_compute_address" "mylb" {
+  name   = "${local.name}-mylb-regional-static-ip"
+  region = var.gcp_region1
+}
+Step-03: c7-01-loadbalancer.tf: Load Balancer Health Check
+google_compute_region_health_check
+# Resource: Regional Health Check
+resource "google_compute_region_health_check" "mylb" {
+  name                = "${local.name}-mylb-myapp1-health-check"
+  check_interval_sec  = 5
+  timeout_sec         = 5
+  healthy_threshold   = 2
+  unhealthy_threshold = 3
+  http_health_check {
+    request_path = "/index.html"
+    port         = 80
+  }
+}
+Step-04: c7-01-loadbalancer.tf: Regional Backend Service
+google_compute_region_backend_service
+# Resource: Regional Backend Service
+resource "google_compute_region_backend_service" "mylb" {
+  name                  = "${local.name}-myapp1-backend-service"
+  protocol              = "HTTP"
+  load_balancing_scheme = "EXTERNAL_MANAGED"
+  health_checks         = [google_compute_region_health_check.mylb.self_link]
+  port_name             = "webserver"
+  backend {
+    group = google_compute_region_instance_group_manager.myapp1.instance_group
+    capacity_scaler = 1.0
+    balancing_mode = "UTILIZATION"
+  }
+}
+Step-05: c7-01-loadbalancer.tf: Regional URL Map
+google_compute_region_url_map
+# Resource: Regional URL Map
+resource "google_compute_region_url_map" "mylb" {
+  name            = "${local.name}-mylb-url-map"
+  default_service = google_compute_region_backend_service.mylb.self_link
+}
+Step-06: c7-01-loadbalancer.tf: Regional HTTP Proxy
+google_compute_region_target_http_proxy
+# Resource: Regional HTTP Proxy
+resource "google_compute_region_target_http_proxy" "mylb" {
+  name   = "${local.name}-mylb-http-proxy"
+  url_map = google_compute_region_url_map.mylb.self_link
+}
+Step-07: c3-vpc.tf: Regional Proxy Subnet
+google_compute_subnetwork
+# Resource: Regional Proxy-Only Subnet (Required for Regional Application Load Balancer)
+resource "google_compute_subnetwork" "regional_proxy_subnet" {
+  name             = "${var.gcp_region1}-regional-proxy-subnet"
+  region           = var.gcp_region1
+  ip_cidr_range    = "10.0.0.0/24"
+  purpose          = "REGIONAL_MANAGED_PROXY"
+  network          = google_compute_network.myvpc.id
+  role             = "ACTIVE"
+}
+Step-08: c7-01-loadbalancer.tf: Regional Forwarding rule
+google_compute_forwarding_rule
+# Resource: Regional Forwarding Rule
+resource "google_compute_forwarding_rule" "mylb" {
+  name        = "${local.name}-mylb-forwarding-rule"
+  target      = google_compute_region_target_http_proxy.mylb.self_link
+  port_range  = "80"
+  ip_protocol = "TCP"
+  ip_address = google_compute_address.mylb.address
+  load_balancing_scheme = "EXTERNAL_MANAGED" # Creates new GCP LB (not classic)
+  network = google_compute_network.myvpc.id
+  # During the destroy process, we need to ensure LB is deleted first, before deleting VPC proxy-only subnet
+  depends_on = [ google_compute_subnetwork.regional_proxy_subnet ]
+}
+Step-09: c7-02-loadbalancer-outputs.tf
+output "mylb_static_ip_address" {
+  description = "The static IP address of the load balancer."
+  value       = google_compute_address.mylb.address
+}
+
+output "mylb_backend_service_self_link" {
+  description = "The self link of the backend service."
+  value       = google_compute_region_backend_service.mylb.self_link
+}
+
+output "mylb_url_map_self_link" {
+  description = "The self link of the URL map."
+  value       = google_compute_region_url_map.mylb.self_link
+}
+
+output "mylb_target_http_proxy_self_link" {
+  description = "The self link of the target HTTP proxy."
+  value       = google_compute_region_target_http_proxy.mylb.self_link
+}
+
+output "mylb_forwarding_rule_ip_address" {
+  description = "The IP address of the forwarding rule."
+  value       = google_compute_forwarding_rule.mylb.ip_address
+}
+Step-10: Execute Terraform Commands
+# Terraform Initialize
+terraform init
+
+# Terraform Validate
+terraform validate
+
+# Terraform Plan
+terraform plan
+
+# Terraform Apply
+terraform apply
+Step-11: Verify Resources
+Static IP
+Load Balancer
+MIG
+VM Instnaces
+Curl Test
+# Curl test
+curl <http://LOAD-BALANCER-IP>
+curl 34.41.176.65
+while true; do curl 34.41.176.65; sleep 1; done
+Step-12: Clean-Up
+# Terraform Destroy
+terraform destroy -auto-approve
+
+
+
+There are primarily two types of modules depending on how they are written (root and child modules), and depending if they are published or not, we identify two different types as well (local and published).
+
+
+cloud NAT and CLOUD ROUTE
+========================
+
+
+
+2-Regional-HTTP-LB-MIGPrivate/
+Directory actionsMore options
+Latest commit
+stacksimplify
+stacksimplify
+Welcome to StackSimplify
+0bcd649
+ · 
+last month
+History
+Breadcrumbsterraform-on-google-cloud
+/12-Regional-HTTP-LB-MIGPrivate/
+Folders and files
+Name	Last commit message	Last commit date
+parent directory
+..
+terraform-manifests
+Welcome to StackSimplify
+last month
+README.md
+Welcome to StackSimplify
+last month
+README.md
+title	description
+GCP Google Cloud Platform - Regional Application Load Balancer with MIG Private using Terraform
+Learn Regional Application Load Balancer with MIG Private using Terraform on Google Cloud Platform
+Step-01: Introduction
+Remove Public IPs for VMs (Comment instace template access_config attribute)
+Create Health Check Firewall for GCP to perform health checks
+Reference Health check firewall in Instance Template
+Create CLOUD NAT, CLOUD ROUTER
+google_compute_router resource "google_compute_router_nat" "cloud_nat" {
+google_compute_router_nat
+Step-02: c6-01-instance-template.tf
+Comment access_config block
+# Google Compute Engine: Regional Instance Template
+resource "google_compute_region_instance_template" "myapp1" {
+  name        = "${local.name}-myapp1-template"
+  description = "This template is used to create MyApp1 server instances."
+  tags        = [tolist(google_compute_firewall.fw_ssh.target_tags)[0], tolist(google_compute_firewall.fw_http.target_tags)[0]]
+  instance_description = "MyApp1 VM Instances"
+  machine_type         = var.machine_type
+  scheduling {
+    automatic_restart   = true
+    on_host_maintenance = "MIGRATE"
+  }
+  # Create a new boot disk from an image
+  disk {
+    #source_image      = "debian-cloud/debian-12"
+    source_image      = data.google_compute_image.my_image.self_link
+    auto_delete       = true
+    boot              = true
+  }
+  # Network Info
+  network_interface {
+    subnetwork = google_compute_subnetwork.mysubnet.id 
+    /*access_config {
+      # Include this section to give the VM an external IP address
+    } */ 
+  }
+  # Install Webserver
+  metadata_startup_script = file("${path.module}/app1-webserver-install.sh")
+  labels = {
+    environment = local.environment
+  }
+  metadata = {
+    environment = local.environment
+  }
+}
+Step-03: c4-firewallrules.tf
+# Firewall rule: Allow Health checks
+resource "google_compute_firewall" "fw_health_checks" {
+  name    = "fwrule-allow-health-checks"
+  network = google_compute_network.myvpc.id 
+  allow {
+    protocol = "tcp"
+    ports    = ["80"]
+  }
+  source_ranges = [
+    "35.191.0.0/16",
+    "130.211.0.0/22"
+  ]
+  target_tags = ["allow-health-checks"]
+}
+Step-05: c6-01-instance-template.tf: Update firewall rule in Instance Template
+# Comment Old one
+  #tags        = [tolist(google_compute_firewall.fw_ssh.target_tags)[0], tolist(google_compute_firewall.fw_http.target_tags)[0]]
+# Add new one  
+  tags        = [tolist(google_compute_firewall.fw_ssh.target_tags)[0], tolist(google_compute_firewall.fw_http.target_tags)[0], tolist(google_compute_firewall.fw_health_checks.target_tags)[0]]
+Step-06: c8-Cloud-NAT-Cloud-Router.tf
+google_compute_router resource "google_compute_router_nat" "cloud_nat" {
+google_compute_router_nat
+# Resource: Cloud Router
+resource "google_compute_router" "cloud_router" {
+  name    = "${local.name}-${var.gcp_region1}-cloud-router"
+  network = google_compute_network.myvpc.id
+  region  = var.gcp_region1
+}
+
+# Resource: Cloud NAT
+resource "google_compute_router_nat" "cloud_nat" {
+  name   = "${local.name}-${var.gcp_region1}-cloud-nat"
+  router = google_compute_router.cloud_router.name
+  region = google_compute_router.cloud_router.region
+  nat_ip_allocate_option = "AUTO_ONLY"
+  source_subnetwork_ip_ranges_to_nat = "ALL_SUBNETWORKS_ALL_IP_RANGES"
+  log_config {
+    enable = true
+    filter = "ALL"
+  }
+}
+Step-07: Execute Terraform Commands
+# Terraform Initialize
+terraform init
+
+# Terraform Validate
+terraform validate
+
+# Terraform Plan
+terraform plan
+
+# Terraform Apply
+terraform apply
+Step-08: Verify Resources
+Static IP
+Load Balancer
+MIG
+VM Instnaces (Should not have external ip assigned)
+Curl Test
+# Curl test
+curl <http://LOAD-BALANCER-IP>
+curl 146.148.91.239
+while true; do curl 146.148.91.239; sleep 1; done
+Step-12: Clean-Up
+# Terraform Destroy
+terraform destroy -auto-approve
+
+
+http LB ( http to http)
+
+Regional-HTTPS-LB-SelfSigned/
+Directory actionsMore options
+Latest commit
+stacksimplify
+stacksimplify
+Welcome to StackSimplify
+0bcd649
+ · 
+last month
+History
+Breadcrumbsterraform-on-google-cloud
+/14-Regional-HTTPS-LB-SelfSigned/
+Folders and files
+Name	Last commit message	Last commit date
+parent directory
+..
+terraform-manifests
+Welcome to StackSimplify
+last month
+README.md
+Welcome to StackSimplify
+last month
+README.md
+
+title	description
+GCP Google Cloud Platform - Selfsigned SSL with Certmanager
+Learn to Selfsigned SSL with CertManager using Terraform on Google Cloud Platform
+Step-01: Introduction
+We will use Certificate Manager (latest) for SSL Certificates
+We will create self-signed certificates
+Apply them to load balancer and test HTTPS URL
+Implement HTTP to HTTPS redirect
+Step-02: COPY from previous section 13-Regional-HTTP-LB-MIGUpdatePolicy
+Remove c9-01-instance-template.tf
+Remove v2-app1-webserver-install.sh
+c6-03-app1-mig.tf: Ensure only V1 version exists in version block
+  # Instance Template
+  version {
+    # V1 Version
+    instance_template = google_compute_region_instance_template.myapp1.id
+  }
+Step-03: Create Self-signed SSL certificates
+# Change Directory
+cd terraform-manifests/self-signed-ssl
+
+# Create your app1 key:
+openssl genrsa -out app1.key 2048
+
+# Create your app1 certificate signing request:
+openssl req -new -key app1.key -out app1.csr -subj "/CN=app1.stacksimplify.com"
+
+# Create your app1 certificate:
+openssl x509 -req -days 7300 -in app1.csr -signkey app1.key -out app1.crt
+Step-04: c9-certificate-manager.tf
+# Resource: Certificate manager certificate
+resource "google_certificate_manager_certificate" "myapp1" {
+  location    = var.gcp_region1
+  name        = "${local.name}-ssl-certificate"
+  description = "${local.name} Certificate Manager SSL Certificate"
+  scope       = "DEFAULT"
+  self_managed {
+    pem_certificate = file("${path.module}/self-signed-ssl/app1.crt")
+    pem_private_key = file("${path.module}/self-signed-ssl/app1.key")
+  }
+  labels = {
+    env = local.environment
+  }
+}
+Step-05: c7-01-loadbalancer.tf: Comment HTTP Proxy
+# Resource: Regional HTTP Proxy
+resource "google_compute_region_target_http_proxy" "mylb" {
+  name   = "${local.name}-mylb-http-proxy"
+  url_map = google_compute_region_url_map.mylb.self_link
+}
+Step-06: c7-01-loadbalancer.tf: Create HTTPS Proxy
+# Resource: Regional HTTPS Proxy
+resource "google_compute_region_target_https_proxy" "mylb" {
+  name   = "${local.name}-mylb-https-proxy"
+  url_map = google_compute_region_url_map.mylb.self_link
+  certificate_manager_certificates = [ google_certificate_manager_certificate.myapp1.id ]
+}
+Step-07: c7-01-loadbalancer.tf: Update Regional Forwarding rule
+Update port_range  = "80"
+Update target      = google_compute_region_target_https_proxy.mylb.self_link
+# Resource: Regional Forwarding Rule
+resource "google_compute_forwarding_rule" "mylb" {
+  name        = "${local.name}-mylb-forwarding-rule"
+  target      = google_compute_region_target_https_proxy.mylb.self_link
+  port_range  = "443"
+  ip_protocol = "TCP"
+  ip_address = google_compute_address.mylb.address
+  load_balancing_scheme = "EXTERNAL_MANAGED" # Creates new GCP LB (not classic)
+  network = google_compute_network.myvpc.id
+  # During the destroy process, we need to ensure LB is deleted first, before deleting VPC proxy-only subnet
+  depends_on = [ google_compute_subnetwork.regional_proxy_subnet ]
+}
+Step-08: c7-03-loadbalancer-outputs.tf: Update
+output "mylb_target_https_proxy_self_link" {
+  description = "The self link of the target HTTPS proxy."
+  value       = google_compute_region_target_https_proxy.mylb.self_link
+}
+Step-05: Execute Terraform Commands
+# Terraform Initialize
+terraform init
+
+# Terraform Validate
+terraform validate
+
+# Terraform Plan
+terraform plan
+
+# Terraform Apply
+terraform apply
+Step-06: Verify Resources
+Verify Load Balancer
+Verify Certificate Manager SSL Certificate
+# Access HTTPS URL
+https://<LOAD-BALANCER-IP>
+Step-07: c7-02-loadbalancer-http-to-https.tf
+# Resource: Regional URL Map for HTTP to HTTPS redirection
+resource "google_compute_region_url_map" "http" {
+  name = "${local.name}-myapp1-http-to-https-url-map"
+  default_url_redirect {
+    redirect_response_code = "MOVED_PERMANENTLY_DEFAULT"
+    strip_query            = false
+    https_redirect         = true
+  }
+}
+
+# Resource: Regional Target HTTP Proxy for redirection
+resource "google_compute_region_target_http_proxy" "http" {
+  name   = "${local.name}-myapp1-http-to-https-proxy"
+  url_map = google_compute_region_url_map.http.self_link
+}
+
+# Resource: Regional Forwarding Rule for HTTP to HTTPS redirection
+resource "google_compute_forwarding_rule" "http" {
+  name        = "${local.name}-myapp1-http-to-https-forwarding-rule"
+  target      = google_compute_region_target_http_proxy.http.self_link
+  port_range  = "80"
+  ip_protocol = "TCP"
+  ip_address = google_compute_address.mylb.address
+  load_balancing_scheme = "EXTERNAL_MANAGED" # Creates new GCP LB (not classic)
+  network = google_compute_network.myvpc.id
+  # During the destroy process, we need to ensure LB is deleted first, before deleting VPC proxy-only subnet
+  depends_on = [ google_compute_subnetwork.regional_proxy_subnet ]
+}
+Step-08: Verify Resources
+Verify Load Balancer
+# Terraform Validate
+terraform validate
+
+# Terraform Plan
+terraform plan
+
+# Terraform Apply
+terraform apply
+
+# Access HTTP URL
+http://<LOAD-BALANCER-IP>
+Observation:
+1. HTTP URL will redirect to HTTPS URL
+Step-09: Clean-Up
+# Terraform Destroy
+terraform destroy -auto-approve
+
+
+Cloud DNS - Basics
+Step-01: Introduction
+Register a Domain using Cloud Domains
+Create a Cloud DNS Zone
+Reserve the External IP Address
+Create VM Instance with sample app, reserved external IP
+Create DNS Record Set
+Access Sample Application using browser with DNS Name
+Delete all the resources created as part of this demo
+Step-02: Review/Create Cloud DNS Zone
+Goto Network Services -> Cloud DNS -> CREATE ZONE
+Zone type: Public
+Zone name: kalyanreddydaida-com
+DNS Name: kalyanreddydaida.com
+REST ALL LEAVE TO DEFAULTS
+Click on CREATE
+Step-03: Reserve the External Static IP Address
+# Set Project
+gcloud config set project PROJECT_ID
+gcloud config set project gcplearn9
+
+# Reserve the External Static IP Address 
+gcloud compute addresses create ext-static-ip-for-dns-demo --region=us-central1
+Step-04: Cerate VM Instance with reserved External IP
+# Create VM with External [or] Create using Webconsole
+gcloud compute instances create cloud-dns-demovm \
+    --zone=us-central1-a \
+    --machine-type=e2-micro \
+    --network-interface=subnet=mysubnet1,address=EXTERNAL_IP \
+    --metadata-from-file=startup-script=nginx-webserver.sh
+
+# Replaced EXTERNAL_IP 
+gcloud compute instances create cloud-dns-demovm \
+    --zone=us-central1-a \
+    --machine-type=e2-micro \
+    --network-interface=subnet=mysubnet1,address=34.41.67.198 \
+    --metadata-from-file=startup-script=nginx-webserver.sh
+
+# List Compute Instances
+gcloud compute instances list   
+
+# Review External IP of VM
+1. IPs should match whatever we reserved as Static IPs
+
+# Create Firewall Rule
+gcloud compute firewall-rules create fw-ingress-80-allinstances \
+  --description="Allow inbound port 80 for all instances in a network" \
+  --direction=INGRESS \
+  --priority=1000 \
+  --network=vpc2-custom \
+  --action=ALLOW \
+  --rules=tcp:80 \
+  --source-ranges=0.0.0.0/0
+
+# Verify Application Deployed 
+1. Verify VM Instance External IP Address
+2. Access Application via browser and verify
+http://<EXTERNAL-IP>
+Observation:
+1. Application should be accessible
+Step-05: Create DNS Record set
+Goto Network Services -> Cloud DNS -> ZONES -> kalyanreddydaida-com -> RECORD SETS -> ADD STANDARD
+DNS Name: mydnsdemo.kalyanreddydaida.com
+IPv4 Address: EXTERNAL-IP
+Step-06: Access Sample application using DNS Name in browser
+# Verify your setup
+dig mydnsdemo.kalyanreddydaida.com
+dig +trace mydnsdemo.kalyanreddydaida.com
+
+# nslookup test
+nslookup mydnsdemo.kalyanreddydaida.com
+
+# Access Application
+http://mydnsdemo.kalyanreddydaida.com
+Step-07: Delete VM Instance, Firewall Rule and Release Static IP
+Delete VM Instance created as part of this demo
+Delete Firewall rule created as part of this demo
+Release External Static IP Address
+# List and Delete Compute Instance
+gcloud compute instances list 
+gcloud compute instances delete cloud-dns-demovm --zone=us-central1-a --delete-disks=all
+
+# List and Delete Firewall rule which we created
+gcloud compute firewall-rules list --network=default
+gcloud compute firewall-rules delete fw-ingress-80-allinstances --network=default
+
+# List and Delete/Release IP Addresss (External)
+Go to VPC Network -> IP Addresses -> Select IP -> RELEASE STATIC ADDRESS -> RELEASE
+
+cloud domain is use for domain registration and management
+
+support DNSSEC which project your domains from spoofing ad cache poisoning attacks
+
+tightly integrated with google cloud DNS
+
+what DNS do its convert the url into ip addrd
+
+DNS peering is a feature of Google Cloud DNS that allows you to send DNS queries to other VPC networks for resolution.
+
+record sets 
+-what ever we create is DNS record
+
+
+Regional-HTTPS-LB-CloudDNS/
+Directory actionsMore options
+Latest commit
+stacksimplify
+stacksimplify
+Welcome to StackSimplify
+0bcd649
+ · 
+last month
+History
+Breadcrumbsterraform-on-google-cloud
+/16-Regional-HTTPS-LB-CloudDNS/
+Folders and files
+Name	Last commit message	Last commit date
+parent directory
+..
+D1-terraform-manifests
+Welcome to StackSimplify
+last month
+D2-terraform-manifests
+Welcome to StackSimplify
+last month
+README.md
+Welcome to StackSimplify
+last month
+README.md
+title	description
+GCP Google Cloud Platform - Selfsigned SSL with Certmanager
+Learn to Selfsigned SSL with CertManager using Terraform on Google Cloud Platform
+Step-00: Pre-requisite
+Registered Domain in Cloud Domians or any other Domain Provider
+Create a Cloud DNS Zone for that respective Cloud Domain or Domain from other Domain provider
+Step-01: Introduction
+We will use Certificate Manager (latest) for SSL Certificates
+Demo-01: Cloud DNS + Cloud Domains
+Pre-requisite-1: Cloud Domain is registered and ready to use
+Pre-requisite-2: Cloud DNS Zone is created and ready to use
+Create production grade SSL certificates using Certificate Manager and DNS Authorization
+Associate SSL Certificate to Load Balancer
+Create Cloud DNS Record set (DNS registed the Load balancer IP to a domain name)
+Verify the application using DNS Name
+Terraform Manifests Folder: D1-terraform-manifests
+Demo-02: Cloud DNS + Domain from other domain provider (AWS Route53)
+Pre-requiite-1: Should have a registered domain in any other domain provider (Example: AWS Route53)
+Create Cloud DNS Zone
+Update Domain Registrar (External) with Google Cloud DNS Zone Nameserver details
+Update DNS Name and Cloud DNS Zone in locals block
+Rest all is same as demo-01
+Create production grade SSL certificates using Certificate Manager and DNS Authorization
+Associate SSL Certificate to Load Balancer
+Create Cloud DNS Record set (DNS registed the Load balancer IP to a domain name)
+Verify the application using DNS Name
+Terraform Manifests Folder: D2-terraform-manifests
+Step-02: COPY from previous section 14-Regional-HTTPS-LB-SelfSigned
+Delete self-signed-ssl folder in terraform-manifests
+Delete c9-certificate-manager.tf
+Step-03: Demo-01: Cloud DNS + Cloud Domains
+Terraform Manifests Folder: D1-terraform-manifests
+Step-03-01: c9-cloud-dns.tf
+locals {
+  mydomain = "myapp1.devopsincloud.com"
+  dns_managed_zone = "devopsincloud-com"
+}
+
+# Resource: Cloud DNS Record Set for A Record
+resource "google_dns_record_set" "a_record" {
+  #project      = "kdaida123"
+  managed_zone = "${local.dns_managed_zone}"
+  name         = "${local.mydomain}."
+  type         = "A"
+  ttl          = 300
+  rrdatas      = [google_compute_address.mylb.address]
+}
+Step-03-02: c10-certificate-manager.tf
+# Resource: Certificate Manager DNS Authorization
+resource "google_certificate_manager_dns_authorization" "myapp1" {
+  location    = var.gcp_region1
+  name        = "${local.name}-myapp1-dns-authorization"
+  description = "myapp1 dns authorization"
+  domain      = "${local.mydomain}"
+}
+
+# Resource: Certificate manager certificate
+resource "google_certificate_manager_certificate" "myapp1" {
+  location    = var.gcp_region1
+  name        = "${local.name}-myapp1-ssl-certificate"
+  description = "${local.name} Certificate Manager SSL Certificate"
+  scope       = "DEFAULT"
+  labels = {
+    env = "dev"
+  }
+  managed {
+    domains = [
+      google_certificate_manager_dns_authorization.myapp1.domain
+      ]
+    dns_authorizations = [
+      google_certificate_manager_dns_authorization.myapp1.id
+      ]
+  }
+}
+
+
+# Resource: DNS record to be created in DNS zone for DNS Authorization
+resource "google_dns_record_set" "myapp1_cname" {
+  project      = "kdaida123"
+  managed_zone = "${local.dns_managed_zone}"
+  name         = google_certificate_manager_dns_authorization.myapp1.dns_resource_record[0].name
+  type         = google_certificate_manager_dns_authorization.myapp1.dns_resource_record[0].type
+  ttl          = 300
+  rrdatas      = [google_certificate_manager_dns_authorization.myapp1.dns_resource_record[0].data]
+}
+Step-03-03: c7-01-loadbalancer.tf
+Verify HTTPS proxy mapped with SSL certificate from Certificate manager
+# Resource: Regional HTTPS Proxy
+resource "google_compute_region_target_https_proxy" "mylb" {
+  name   = "${local.name}-mylb-https-proxy"
+  url_map = google_compute_region_url_map.mylb.self_link
+  certificate_manager_certificates = [ google_certificate_manager_certificate.myapp1.id ]
+}
+Step-03-04: Execute Terraform Commands
+# Change Directroy
+cd D1-terraform-manifests
+
+# Terraform Initialize
+terraform init
+
+# Terraform Validate
+terraform validate
+
+# Terraform Plan
+terraform plan
+
+# Terraform Apply
+terraform apply
+Step-03-05: Verify Resources
+Verify Load Balancer
+Verify Certificate Manager SSL Certificate
+# Access HTTP URL
+http://<DNS URL>
+Observation:
+1. DNS URL should redirct to HTTPS URL
+Step-03-06: Clean-Up
+# Terraform Destroy
+terraform destroy -auto-approve
+Step-04: Demo-02: Cloud DNS + AWS Route53 as Domain Registrar
+Terraform Manifests Folder: D2-terraform-manifests
+Step-04-01: Create Cloud DNS Zone
+Goto Cloud DNS Zones -> CREATE ZONE
+Zone name: devopsincloud-com
+DNS Name: devopsincloud.com
+Description: devopsincloud-com
+REST ALL LEAVE TO DEFAULTS
+Click on CREATE
+Step-04-02: c9-cloud-dns.tf
+locals {
+  mydomain = "myapp1.devopsincloud.com"
+  dns_managed_zone = "devopsincloud-com"
+}
+Step-04-03: c9-cloud-dns.tf
+Comment #project      = "kdaida123" argument
+We have created DNS zone in same project where we are working, so project argument not needed.
+# Resource: Cloud DNS Record Set for A Record
+resource "google_dns_record_set" "a_record" {
+  #project      = "kdaida123"
+  managed_zone = "${local.dns_managed_zone}"
+  name         = "${local.mydomain}."
+  type         = "A"
+  ttl          = 300
+  rrdatas      = [google_compute_address.mylb.address]
+}
+Step-04-04: c10-certificate-manager.tf
+Comment #project      = "kdaida123" argument
+We have created DNS zone in same project where we are working, so project argument not needed.
+# Resource: DNS record to be created in DNS zone for DNS Authorization
+resource "google_dns_record_set" "myapp1_cname" {
+  #project      = "kdaida123"
+  managed_zone = "${local.dns_managed_zone}"
+  name         = google_certificate_manager_dns_authorization.myapp1.dns_resource_record[0].name
+  type         = google_certificate_manager_dns_authorization.myapp1.dns_resource_record[0].type
+  ttl          = 300
+  rrdatas      = [google_certificate_manager_dns_authorization.myapp1.dns_resource_record[0].data]
+}
+Step-04-05: Execute Terraform Commands
+# Change Directroy
+cd D2-terraform-manifests
+
+# Terraform Initialize
+terraform init
+
+# Terraform Validate
+terraform validate
+
+# Terraform Plan
+terraform plan
+
+# Terraform Apply
+terraform apply
+Step-04-06: Verify Resources
+Verify Load Balancer
+Verify Certificate Manager SSL Certificate
+# Access HTTP URL
+http://<DNS URL>
+Observation:
+1. DNS URL should redirct to HTTPS URL
+Step-04-07: Clean-Up
+# Terraform Destroy
+terraform destroy -auto-approve
+
+
+
+
+
+
+
+Terraform Modules
+==================
+
+- .tf files collection to kept together in a directory
+
+- it a main way to package and reuse resource configuration with terraform
+
+- reuse when published in terraform registry
+
+
+Module types
+============
+
+local Module : we can access using local path shared drives
+
+module "consul"
+{
+ source = "./consul"
+
+}
+
+Public Modules :  published in terraform registry
+
+module "network" {
+
+source = "terraform-google-module/network/google"
+version =  9.1.0
+}
+
+
+from GitHub public registry
+
+
+module "consul" {
+
+source = "github.com/hashicorp/example"
+
+}
+
+http urls
+module "vpc" {
+
+source = "https://example.com/vpc-module/example.zip"
+
+}
+
+s3 Buckets:
+module "consul" {
+
+source = "s3::https://s3-eu-west-1.amazon.com/example.com/examplecorp-terraform-modules/vpc"
+
+}
+
+
+publicly accessible to all
+
+Private Modules : published to private registry
+
+
+
+Module Storage and access
+=========================
+
+-from local path we can use
+-from terraform registry
+-from GitHub
+-from http url
+
+
+Terraform-Modules/
+Directory actionsMore options
+Latest commit
+stacksimplify
+stacksimplify
+Welcome to StackSimplify
+0bcd649
+ · 
+last month
+History
+Breadcrumbsterraform-on-google-cloud
+/28-Terraform-Modules/
+Folders and files
+Name	Last commit message	Last commit date
+parent directory
+..
+01-base-terraform-manifests
+Welcome to StackSimplify
+last month
+02-terraform-manifests-with-modules
+Welcome to StackSimplify
+last month
+README.md
+Welcome to StackSimplify
+last month
+README.md
+title	description
+GCP Google Cloud Platform - Terraform Modules
+Learn to use pre-built Terraform Modules from Terraform Registry
+Step-01: Introduction
+Learn to use pre-built Terraform Modules from Terraform Registry
+We are going to use the VPC Terraform module from Terraform Registry in this demo
+Step-02: Review base Terraform Manifests
+Folder: 01-base-terraform-manifests
+This will create the following resources
+VPC
+Firewall Rules
+VM Instance
+All the above resources will be created using Terraform Resources
+In the series of next steps, we will make necessary changes to use Terraform VPC Module or network module from Terraform registry
+Step-03: Folder: 02-terraform-manifests-with-modules
+Step-03-01: c4-vpc.tf
+# Module: VPC
+module "vpc" {
+    source  = "terraform-google-modules/network/google"
+    version = "~> 9.1"
+    project_id   = var.gcp_project
+    network_name = "${local.name}-vpc"
+    routing_mode = "GLOBAL"
+    subnets = [
+        {
+            subnet_name           = "${local.name}-${var.gcp_region1}-subnet"
+            subnet_ip             = "10.128.0.0/20"
+            subnet_region         = var.gcp_region1
+        }
+    ] 
+}
+Step-03-02: c7-outputs.tf
+Update VPC and Subnet Outputs
+# Terraform Output Values
+output "vpc_id" {
+  description = "VPC ID"
+  #value = google_compute_network.myvpc.id 
+  value = module.vpc.network_id
+}
+output "subnet_id" {
+  description = "Subnet IDs"
+  #value = google_compute_subnetwork.mysubnet.id   
+  value = module.vpc.subnets_ids
+}
+Step-03-03: c5-firewalls.tf
+Update VPC ID
+# Firewall Rule: SSH
+resource "google_compute_firewall" "fw_ssh" {
+  name = "${local.name}-fwrule-allow-ssh22"
+  allow {
+    ports    = ["22"]
+    protocol = "tcp"
+  }
+  direction     = "INGRESS"
+  #network       = google_compute_network.myvpc.id 
+  network = module.vpc.network_id
+  priority      = 1000
+  source_ranges = ["0.0.0.0/0"]
+  target_tags   = ["ssh-tag"]
+}
+
+# Firewall Rule: HTTP Port 80
+resource "google_compute_firewall" "fw_http" {
+  name = "${local.name}-fwrule-allow-http80"
+  allow {
+    ports    = ["80"]
+    protocol = "tcp"
+  }
+  direction     = "INGRESS"
+  #network       = google_compute_network.myvpc.id 
+  network = module.vpc.network_id
+  priority      = 1000
+  source_ranges = ["0.0.0.0/0"]
+  target_tags   = ["webserver-tag"]
+}
+Step-03-04: c6-vminstance.tf
+Update Subnet ID
+# Resource Block: Create a single Compute Engine instance
+resource "google_compute_instance" "myapp1" {
+  name         = "${local.name}-myapp1"
+  machine_type = var.machine_type
+  zone         = "us-central1-a"
+  tags        = [tolist(google_compute_firewall.fw_ssh.target_tags)[0], tolist(google_compute_firewall.fw_http.target_tags)[0]]
+  boot_disk {
+    initialize_params {
+      image = "debian-cloud/debian-12"
+    }
+  }
+  # Install Webserver
+  metadata_startup_script = file("${path.module}/app1-webserver-install.sh")
+  network_interface {
+    #subnetwork = google_compute_subnetwork.mysubnet.id   
+    subnetwork = module.vpc.subnets_ids[0]
+    access_config {
+      # Include this section to give the VM an external IP address
+    }
+  }
+}
+Step-04: Execute Terraform Commands and Verify
+# Terraform Initialize
+terraform init
+Observation: 
+1. Go to ".terraform/modules" folder and verify if module downloaded
+
+# Terraform Validate
+terraform validate
+
+# Terraform Plan
+terraform plan
+
+# Terraform Apply
+terraform apply -auto-approve
+
+# Verify
+1. Verify VPC 
+2. Verify Subnet
+3. Verify Firewall Rules
+4. Verify VM Instance
+5. Access Application (http://<VM-EXTERNAL-IP>)
+Step-05: Clean-up
+# Terraform destroy
+terraform destroy -auto-approve
+
+
+
+custom module
+==============
+
+
+
+
+Terraform-Build-Custom-Module/
+Directory actionsMore options
+Latest commit
+stacksimplify
+stacksimplify
+Welcome to StackSimplify
+0bcd649
+ · 
+last month
+History
+Breadcrumbsterraform-on-google-cloud
+/29-Terraform-Build-Custom-Module/
+Folders and files
+Name	Last commit message	Last commit date
+parent directory
+..
+modules/vminstance
+Welcome to StackSimplify
+last month
+terraform-manifests
+Welcome to StackSimplify
+last month
+README.md
+Welcome to StackSimplify
+last month
+README.md
+title	description
+GCP Google Cloud Platform - Terraform Custom Modules
+Learn to implement Terraform custom module
+Step-01: Introduction
+Build a simple Terraform Module for VM Instance which can be used in multiple environments like dev, qa, staging and prod
+Step-02: Review Terraform Manifests c1 to c5, tfvars file
+These are straight forward and same as previous demos
+c1-versions.tf
+Update Terraform Settings Backend block: GCS bukcet
+c2-variables.tf
+c3-locals.tf
+c4-vpc.tf
+c5-firewalls.tf
+terraform.tfvars
+Step-03: Create Terraform VM Instance Module
+Step-03-01: Create folder structure
+Folder Stucture: "modules/vminstance"
+Step-03-02: versions.tf
+# Terraform Settings Block
+terraform {
+  required_version = ">= 1.9"
+  required_providers {
+    google = {
+      source = "hashicorp/google"
+      version = ">= 5.36.0"
+    }
+  }
+}
+Step-03-03: variables.tf
+# Input Variables
+# GCP Project
+variable "gcp_project" {
+  description = "Project in which GCP Resources to be created"
+  type = string
+  default = ""
+}
+
+# GCP Region
+variable "gcp_region1" {
+  description = "Region in which GCP Resources to be created"
+  type = string
+  default = ""
+}
+
+# GCP Compute Engine Machine Type
+variable "machine_type" {
+  description = "Compute Engine Machine Type"
+  type = string
+  default = ""
+}
+
+variable "network" {
+  description = "Network to deploy to. Only one of network or subnetwork should be specified."
+  type        = string
+  default     = ""
+}
+
+variable "subnetwork" {
+  description = "Subnet to deploy to. Only one of network or subnetwork should be specified."
+  type        = string
+  default     = ""
+}
+
+variable "zone" {
+  type        = string
+  description = "Zone where the instances should be created. If not specified, instances will be spread across available zones in the region."
+  default     = null
+}
+
+variable "vminstance_name" {
+  type        = string
+  description = "VM Instance Name"
+  default     = ""
+}
+
+variable "firewall_tags" {
+  description = "List of firewall tags"
+  type        = list(string)
+}
+Step-03-04: main.tf
+# Resource Block: Create a single Compute Engine instance
+resource "google_compute_instance" "myapp1" {
+  name         = var.vminstance_name
+  machine_type = var.machine_type
+  zone         = var.zone
+  tags         = var.firewall_tags
+  boot_disk {
+    initialize_params {
+      image = "debian-cloud/debian-12"
+      size = 10
+      #size = 20
+    }
+  }
+  # Install Webserver
+  metadata_startup_script = file("${path.module}/app1-webserver-install.sh")
+  network_interface {
+    subnetwork = var.subnetwork   
+    access_config {
+      # Include this section to give the VM an external IP address
+    }
+  }
+}
+Step-03-05: outputs.tf
+output "vm_external_ip" {
+  description = "VM External IPs"
+  value = google_compute_instance.myapp1.network_interface.0.access_config.0.nat_ip
+}
+Step-04: Call the Terraform Module in c6-vminstance.tf
+# Module Block: Create a single Compute Engine instance
+module "myvminstance" {
+  source  = "../modules/vminstance"
+  vminstance_name = "${local.name}-myapp1"
+  machine_type = var.machine_type
+  zone = "us-central1-a"
+  firewall_tags = [tolist(google_compute_firewall.fw_ssh.target_tags)[0], tolist(google_compute_firewall.fw_http.target_tags)[0]]
+  subnetwork = google_compute_subnetwork.mysubnet.id
+}
+Step-05: c7-outputs.tf
+# Terraform Output Values
+output "vpc_id" {
+  description = "VPC ID"
+  value = google_compute_network.myvpc.id 
+}
+output "subnet_id" {
+  description = "Subnet ID"
+  value = google_compute_subnetwork.mysubnet.id   
+}
+output "vm_external_ip" {
+  description = "VM External IPs"
+  #value = google_compute_instance.myapp1.network_interface.0.access_config.0.nat_ip
+  value = module.myvminstance.vm_external_ip
+}
+Step-06: Execute Terraform Commands and Verify
+# Change Directory
+cd terraform-manifests
+
+# Terraform Initialize
+terraform init
+Observation:
+1. Review if module downloaded to ".terraform/modules/modules.json" file
+
+# Terraform Validate
+terraform validate
+
+# Terraform Plan
+terraform plan
+
+# Terraform Apply
+terraform apply -auto-approve
+
+# Verify Resources
+1. VM Instance
+2. Access Application
+3. Review VM Instance disk size, it should be 10GB
+Step-07: Make a change in the VM Instance module
+# Change VM Instance Disk size from size 10 to size 20 in Terraform Module
+1. Go to File: modules/vminstance/main.tf
+2. Change size from 10GB to 20GB in boot_disk block
+
+  boot_disk {
+    initialize_params {
+      image = "debian-cloud/debian-12"
+      #size = 10
+      size = 20
+    }
+  }
+Step-08: Execute Terraform Commands and Verify
+# Change Directory
+cd terraform-manifests
+
+# Terraform Validate
+terraform validate
+
+# Terraform Plan
+terraform plan
+
+# Terraform Apply
+terraform apply -auto-approve
+
+# Verify Resources
+1. VM Instance
+2. Access Application
+3. Review VM Instance disk size, it should be 20GB
+Step-09: Clean-up
+# Change Directory
+cd terraform-manifests
+
+# Terraform Destroy
+terraform destroy -auto-approve
+Step-10: Rollback the change: To be demo ready for students
+# Change VM Instance Disk size from size 20 to size 10 in Terraform Module
+1. Go to File: modules/vminstance/main.tf
+2. Change size from 20GB to 10GB in boot_disk block
+
+  boot_disk {
+    initialize_params {
+      image = "debian-cloud/debian-12"
+      size = 10
+      #size = 20
+    }
+
+
+terraform-manifest
+
+module/vmintance/main.tf,insatnce.tf,output.tf
+
+calling child module in this
+
+module "vminstance"
+{
+source = "../module/vmintance"
+
+}
+
+output calling in terraform manifest folder(parent )
+
+output "vm_instance" {
+
+value = module.myvmnstance.vm_external_ip
+}
+
+
+
+Terraform-GCP-DevOps-CloudBuild-GitHub/
+Directory actionsMore options
+Latest commit
+stacksimplify
+stacksimplify
+Welcome to StackSimplify
+0bcd649
+ · 
+last month
+History
+Folders and files
+Name	Last commit message	Last commit date
+parent directory
+..
+GIT-Repo-Files
+Welcome to StackSimplify
+last month
+README.md
+Welcome to StackSimplify
+last month
+README.md
+
+title	description
+GCP Google Cloud Platform - Implement DevOps for Terraform Code in GCP
+Learn to implement DevOps for Terraform Code in GCP
+Step-01: Introduction
+Implement DevOps pipeline using
+GitHub
+GCP Cloud Build App for GitHub
+GCP Cloud Build Service
+We are going to use dev and prod environments in this demo. You can extend it to as many environments as needed.
+We are going to use Terraform Modules concept for a VM Instance which needs changes that will be implemented via DevOps Pipeline using GCP Cloud Build
+Step-02: Review or Create GIT Repo Files
+Step-02-01: Modules Folder
+Copy the modules folder from previous demo (Section: 29-Terraform-Build-Custom-Module)
+Step-02-02: Dev environment in Environments Folder: dev
+Copy the terraform-manifests folder from previous demo (Section: 29-Terraform-Build-Custom-Module) and rename folder to dev (envirionments/dev)
+envirionments/dev/c1-versions.tf: ensure we have the backend block configured as prefix = "env/dev"
+Update your bucket name present in your GCP Account: bucket = "gcplearn9-tfstate"
+# Terraform Settings Block
+terraform {
+  required_version = ">= 1.9"
+  required_providers {
+    google = {
+      source = "hashicorp/google"
+      version = ">= 5.36.0"
+    }
+  }
+  backend "gcs" {
+    bucket = "gcplearn9-tfstate"
+    prefix = "env/dev"
+  }  
+}
+terraform.tfvars: Ensure environment is environment = "dev"
+gcp_project   = "gcplearn9"
+gcp_region1   = "us-central1"
+machine_type  = "e2-micro"
+environment     = "dev"
+business_divsion = "hr"
+Step-02-03: Prod environment in Environments Folder: prod
+Copy the terraform-manifests folder from previous demo (Section: 29-Terraform-Build-Custom-Module) and rename folder to prod (envirionments/prod)
+envirionments/prod/c1-versions.tf: ensure we have the backend block configured as prefix = "env/prod"
+Update your bucket name present in your GCP Account: bucket = "gcplearn9-tfstate"
+# Terraform Settings Block
+terraform {
+  required_version = ">= 1.9"
+  required_providers {
+    google = {
+      source = "hashicorp/google"
+      version = ">= 5.36.0"
+    }
+  }
+  backend "gcs" {
+    bucket = "gcplearn9-tfstate"
+    prefix = "env/prod"
+  }  
+}
+terraform.tfvars: Ensure environment is environment = "prod"
+gcp_project   = "gcplearn9"
+gcp_region1   = "us-central1"
+machine_type  = "e2-micro"
+environment     = "prod"
+business_divsion = "hr"
+Step-02-04: Review cloudbuild.yaml
+steps:
+- id: 'branch name'
+  name: 'alpine'
+  entrypoint: 'sh'  
+  args: 
+  - '-c'
+  - | 
+      echo "***********************"
+      echo "$BRANCH_NAME"
+      echo "***********************"
+
+- id: 'tf init'
+  name: 'hashicorp/terraform:1.9.0'
+  entrypoint: 'sh'
+  args: 
+  - '-c'
+  - |
+      if [ -d "environments/$BRANCH_NAME/" ]; then
+        cd environments/$BRANCH_NAME
+        terraform init
+      else
+        for dir in environments/*/
+        do 
+          cd ${dir}   
+          env=${dir%*/}
+          env=${env#*/}
+          echo ""
+          echo "*************** TERRAFORM INIT ******************"
+          echo "******* At environment: ${env} ********"
+          echo "*************************************************"
+          terraform init || exit 1
+          cd ../../
+        done
+      fi 
+
+# [START tf-plan]
+- id: 'tf plan'
+  name: 'hashicorp/terraform:1.9.0'
+  entrypoint: 'sh'
+  args: 
+  - '-c'
+  - | 
+      if [ -d "environments/$BRANCH_NAME/" ]; then
+        cd environments/$BRANCH_NAME
+        terraform plan
+      else
+        for dir in environments/*/
+        do 
+          cd ${dir}   
+          env=${dir%*/}
+          env=${env#*/}  
+          echo ""
+          echo "*************** TERRAFORM PLAN ******************"
+          echo "******* At environment: ${env} ********"
+          echo "*************************************************"
+          terraform plan || exit 1
+          cd ../../
+        done
+      fi 
+# [END tf-plan]
+
+# [START tf-apply]
+- id: 'tf apply'
+  name: 'hashicorp/terraform:1.9.0'
+  entrypoint: 'sh'
+  args: 
+  - '-c'
+  - | 
+      if [ -d "environments/$BRANCH_NAME/" ]; then
+        cd environments/$BRANCH_NAME      
+        terraform apply -auto-approve
+      else
+        echo "***************************** SKIPPING APPLYING *******************************"
+        echo "Branch '$BRANCH_NAME' does not represent an official environment."
+        echo "*******************************************************************************"
+      fi
+# [END tf-apply]      
+Step-03: GitHub: Create new GitHub Repository
+Go to GitHub -> Repositories Tab -> Click on NEW
+Repository name: terraform-gcp-devops
+Description: Implement DevOps Pipelines for Terraform Configs on GCP (Google Cloud Platform)
+Type: Private
+Initialize this repository with: Add a README file
+Click on Create Repository
+Step-04: Local Desktop: Install Git Client and Configure GitHub SSH Keys
+Optional step, if you already familiar with github please ignore
+Step-04-01: Install Git Client
+Install Git Client
+# Mac
+brew install git
+
+# Windows
+1. Download and install
+Step-04-02: Generating a new SSH key
+### STEPS FOR MACOS ###
+# Verify if Authentication is successful
+ssh -T git@github.com
+
+# Create New SSH Key
+ssh-keygen -t ed25519 -C "your_email@example.com"
+
+# Create new SSH Key (If you are using a legacy system that doesn't support the Ed25519 algorithm)
+ssh-keygen -t rsa -b 4096 -C "your_email@example.com"
+
+# Start SSH Agent
+eval "$(ssh-agent -s)"
+
+# Verify if file exists
+open ~/.ssh/config
+
+# Create file if doesn't exists
+touch ~/.ssh/config
+
+# Open config file, Add below text and save it
+vi ~/.ssh/config
+
+## Content in file ~/.ssh/config
+Host github.com
+  AddKeysToAgent yes
+  UseKeychain no
+  IdentityFile ~/.ssh/id_ed25519
+Step-04-03: Adding a new SSH key to your GitHub account
+Adding a new SSH key to your GitHub account
+# Copy the content from public key file
+cat $HOME/.ssh/id_ed25519.pub
+
+# Go to GitHub -> Settings -> SSH and GPG Keys -> New SSH Key
+TITLE: mac-mini-1
+KEY: COPY the public key file content (id_ed25519.pub)
+Step-04-04: Testing SSH Connection
+Testing SSH Connection
+# Verify if Authentication is successful
+ssh -T git@github.com
+Step-05: Local Desktop: Clone GitRepo and Update all the files dicussed in Step-02
+# Clone GitHub Repository
+git clone git@github.com:stacksimplify/terraform-gcp-devops.git
+
+# Copy Files from "GIT-Repo-Files" folder
+1. environmets folder
+2. modules folder
+3. cloudbuild.yaml
+4. .gitignore
+5. git-deploy.sh
+
+# Commit and Push files to remote git repo
+git status
+git commit -am "Base commit"
+git push
+Step-06: GitHub: Configure GCP Cloud Build on GitHub
+Go to link GitHub Marketplace - Google Cloud Build
+Click on Set up with Google Cloud Build
+Only select repositories: stacksimplify/terraform-gcp-devops
+Click on Install
+Login to Google Cloud and Click on Authorize Google Cloud Build
+Select project in GCP: gcplearn9
+Step-07: GCP Cloud Build: Create HOST Connection
+Go to Cloud Build -> Repositories -> 2nd Gen -> CREATE HOST CONNECTION
+Select Provider: GitHub
+Configure Connection:
+Region: us-central1
+Name: mygithub-connection1
+Click on CONNECT
+Click on CONTINUE
+Use an existing GitHub installation:
+Installation: stacksimplify
+Click on CONFIRM
+Step-08: GCP Cloud Build: Link Repository
+Go to Cloud Build -> Repositories -> 2nd Gen -> mygithub-connection1 -> LINK REPOSITORY
+Connection: mygithub-connection1
+Repository: stacksimplify/terraform-gcp-devops
+Repository name: Generated
+Click on LINK
+Step-09: GCP Cloud Build: Create Trigger
+Go to Cloud Build -> Triggers -> CREATE TRIGGER
+Name: myapp1-trigger1
+Region: us-central1
+Description: MyApp1 Cloud Build Trigger
+Event:
+Repository event that invokes trigger: Push to a branch
+Source:
+Repository generation: 2nd gen
+Repository: stacksimplify-terraform-gcp-devops
+Branch: .* (any branch)
+Configuration:
+Type: Cloud Build configuration file (yaml or json)
+Location:
+Repository: stacksimplify-terraform-gcp-devops (GitHub)
+Cloud Build configuration file location: cloudbuild.yaml
+Advanced:
+Approval: Require approval before build executes
+REST ALL LEAVE TO DEFAULTS
+Click on CREATE
+Step-10: GitHub: Create Dev and Prod branches
+Pre-requisite: Please ensure c1-versions.tf in Dev and Prod environments, you have updated your GCP Cloud storage bucket name to store Terraform state files as part of step-02 of this demo
+# Dev Environment
+  backend "gcs" {
+    bucket = "gcplearn9-tfstate"
+    prefix = "env/dev"
+  } 
+# Prod Environment
+  backend "gcs" {
+    bucket = "gcplearn9-tfstate"
+    prefix = "env/prod"
+  }   
+Go to GitHub -> terraform-gcp-devops -> main -> View all branches
+Click on New branch
+New branch name: dev
+Source: main
+click on Create new branch
+Click on New branch
+New branch name: prod
+Source: main
+click on Create new branch
+Step-11: GCP Cloud Build: Approve Dev and Prod base builds
+Go to Cloud Build -> History
+Step-11-01: Dev Build: Approve
+Approve Dev Build
+Review Build steps (tf init, tf plan, tf apply) and Build Summary
+Verify Terraform State file in Cloud Storage Bucket
+Verify Infra for Dev environment
+VPC
+Firewall Rules
+VM Instance
+VM Instance Disk size
+Access Application: http://
+Step-11-02: Prod Build: Approve
+Approve Prod Build
+Review Build steps (tf init, tf plan, tf apply) and Build Summary
+Verify Terraform State file in Cloud Storage Bucket
+Verify Infra for prod environment
+VPC
+Firewall Rules
+VM Instance
+VM Instance Disk size
+Access Application: http://
+Step-12: GitHub: NEW FEATURE BRANCH: Update VM Instance Boot disk size from 10 to 20 GB
+Step-12-01: GitHub: Make a change with new branch
+Go to dev branch -> terraform-gcp-devops/modules/vminstance /main.tf -> EDIT IN PLACE
+COMMENT #size = 10 and UNCOMMENT size = 20
+# Resource Block: Create a single Compute Engine instance
+resource "google_compute_instance" "myapp1" {
+  name         = var.vminstance_name
+  machine_type = var.machine_type
+  zone         = var.zone
+  tags         = var.firewall_tags
+  boot_disk {
+    initialize_params {
+      image = "debian-cloud/debian-12"
+      #size = 10
+      size = 20
+    }
+  }
+  # Install Webserver
+  metadata_startup_script = file("${path.module}/app1-webserver-install.sh")
+  network_interface {
+    subnetwork = var.subnetwork   
+    access_config {
+      # Include this section to give the VM an external IP address
+    }
+  }
+}
+Click on COMMIT CHANGES
+COMMIT MESSAGE: Update VM Instance Boot from 10GB to 20GB
+SELECT OPTION: Create a new branch for this commit and start a pull request
+NEW BRANCH NAME: stacksimplify-patch-1
+Click on Propose changes
+Click on Create pull request
+Step-12-02: GCP Cloud Build: Approve Build for branch: stacksimplify-patch-1
+Go to Cloud Build -> Approve Build
+Review Build steps (tf init, tf plan, tf apply) and Build Summary
+Observation:
+tf plan: tf plan will run for both dev and prod folders with the change we have made in the branch stacksimplify-patch-1
+Important Note: The build checks whether the $BRANCH_NAME variable matches any environment folder. If so, Cloud Build executes terraform plan for that environment. Otherwise, Cloud Build executes terraform plan for all environments to make sure that the proposed change is appropriate for all of them. If any of these plans fail to execute, the build fails.
+Review the plan to see what will happen for both environments (Dev, prod)
+Based on the disk size change, it will replace the VM.
+module.myvminstance.google_compute_instance.myapp1 must be replaced
+Plan: 1 to add, 0 to change, 1 to destroy.
+tf apply: tf apply will run only for environment name and branch name matches (example: currently only for dev and prod)
+Important Note: Similarly, the terraform apply command runs for environment branches, but it is completely ignored in any other case.
+Step-12-03: GitHub: Verify the Checks on GitHub
+We should see All checks have passed message
+Step-13: GitHub: Promote changes to dev environment and Verify changes applied in Dev environment using Cloud Build
+Step-13-01: GitHub: Promote changes to dev environment
+Go to GitHub -> terraform-gcp-devops -> pull requests
+Click on the pull request just created
+Review statement stacksimplify wants to merge 1 commit into dev from stacksimplify-patch-1
+Click on Merge pull request
+Click on Config merge
+You should see message Pull request successfully merged and closed
+Verify GCP Cloud Build if any build triggered for dev branch
+Step-13-02: GCP Cloud Build: Review and approve Dev Build
+Approve Dev Build
+Review Build steps (tf init, tf plan, tf apply) and Build Summary
+Verify Infra for dev environment
+VM Instance: SHOULD BE REPLACED WITH NEW VM
+VM Instance Disk size: IT SHOULD BE 20 GB
+Access Application: http://
+Step-14: GitHub: Promote changes to prod environment and Verify changes applied in Prod environment using Cloud Build
+Step-14-01: GitHub: Promote changes to prod environment
+Go to GitHub -> terraform-gcp-devops -> pull requests
+Click New pull request
+base: prod
+compare: dev
+Review the changes
+Click on Create pull request
+Title: Promoting VM InstanceDisk size changes 10GB to 20GB to prod
+Click on Create pull request
+Click on Merge pull request
+Click on Confirm merge
+You should see message Pull request successfully merged and closed
+Verify GCP Cloud Build if any build triggered for prod branch
+Step-14-02: GCP Cloud Build: Review and approve Prod Build
+Approve Prod Build
+Review Build steps (tf init, tf plan, tf apply) and Build Summary
+Verify Infra for prod environment
+VM Instance: SHOULD BE REPLACED WITH NEW VM
+VM Instance Disk size: IT SHOULD BE 20 GB
+Access Application: http://
+Step-15: Clean-Up
+Step-15-01: Delete VM Instances
+Dev and prod VM Instances
+Step-15-02: Delete VPCs
+Dev and prod VPC
+Step-15-03: Delete State files in Cloud Storage Bucket
+env/dev
+env/prod
+Step-15-04: Cloud Build: Delete Trigger, Repository and Host Connection
+Delete Trigger
+Delete Repository
+Delete Host Connection
+Step-15-05: Cloud Build App Uninstall
+Go to GitHub -> Settings -> Applications -> Uninstall
+Step-15-06: Cloud Build App Unsubscribe in GitHub
+Go to GitHub -> Settings -> Billing and Plans -> Plans and Usage -> Cancel Plan
+
+
+
+Monitoring
+============
+
+
+ntroduction
+Implement Cloud Monitoring
+Step-02: COPY from section 20-Regional-HTTPS-LB-Logging
+COPY from section 20-Regional-HTTPS-LB-Logging
+Step-03: c2-01-variables.tf: Define additional variables
+# GCP Notification Email for Cloud Monitoring
+variable "gcp_notification_email" {
+  description = "GCP Notification email"
+  type =  string
+  default = "abcd1234@gmail.com"
+}
+Step-04: Update or Review terraform.tfvars
+gcp_project     = "gcplearn9" # This is project ID
+gcp_region1     = "us-central1"
+machine_type    = "e2-micro"
+environment     = "dev"
+business_divsion = "hr"
+gcp_notification_email = "stacksimplify@gmail.com"
+Step-05: c10-01-monitoring-uptime-checks.tf
+# Resource: Notification channel for alerting
+resource "google_monitoring_notification_channel" "email_channel" {
+  display_name = "${local.name} Email Notification Channel"
+  type         = "email"
+  labels = {
+    email_address = var.gcp_notification_email
+  }
+}
+
+# Resource: Uptime check
+resource "google_monitoring_uptime_check_config" "https" {
+  display_name = "${local.name}-myapp1-lb-https-uptime-check"
+  timeout = "60s"
+
+  http_check {
+    path = "/index.html"
+    port = "443"
+    use_ssl = true
+    #validate_ssl = true # We are using self-signed, so don't use this
+  }
+  monitored_resource {
+    type = "uptime_url"
+    labels = {
+      project_id = var.gcp_project # Provide Project ID here, my project name and ID is same used var.gcp_project
+      host = google_compute_address.mylb.address
+    }
+  }
+  content_matchers {
+    content = "Welcome"
+  }
+}
+
+# Resource: Alert policy for the uptime check
+resource "google_monitoring_alert_policy" "lb_uptime_alert" {
+  display_name = "${local.name}-myapp1-lb-uptime-alert"
+  combiner     = "OR"
+
+  conditions {
+    display_name = "${local.name}-lb-uptime-condition"
+    condition_threshold {
+      filter = "metric.type=\"monitoring.googleapis.com/uptime_check/check_passed\" AND resource.type=\"uptime_url\" AND resource.label.\"project_id\"=\"${var.gcp_project}\" AND resource.label.\"host\"=\"${google_compute_address.mylb.address}\""
+      aggregations {
+        alignment_period     = "60s"
+        per_series_aligner   = "ALIGN_FRACTION_TRUE"
+        cross_series_reducer = "REDUCE_MEAN"
+      }
+      comparison    = "COMPARISON_LT"
+      threshold_value = 1
+      duration      = "0s"
+    }
+  }
+  severity = "CRITICAL"
+  documentation {
+    content  = "This alert policy monitors the uptime of the load balancer. It checks whether the specified URL is up and running. If the uptime check fails, an alert is triggered and a notification is sent to the specified email channel."
+    mime_type = "text/markdown"
+    subject  = "${local.name} MyApp1 Load Balancer Uptime Alert"
+  }
+  notification_channels = [google_monitoring_notification_channel.email_channel.id]
+}
+Metric Filter in readable and easy to understand format
+"metric.type=\"monitoring.googleapis.com/uptime_check/check_passed\"
+         AND resource.type=\"uptime_url\"
+         AND resource.label.\"project_id\"=\"${var.gcp_project}\"
+         AND resource.label.\"host\"=\"${google_compute_address.mylb.address}\""
+Step-06: Execute Terraform Commands
+# Terraform Initialize
+terraform init
+
+# Terraform Validate
+terraform validate
+
+# Terraform Plan
+terraform plan
+
+# Terraform Apply
+terraform apply
+Step-07: Verify Resources
+Verify Load Balancer
+Verify Certificate Manager SSL Certificate
+Verify MIG
+Verify Service Account
+Verify Cloud Logging Logs
+Verify Cloud Monitoring - Uptime checks
+Verify Cloud Monitoring - Alert Policy
+Restart VMs to review incidents triggered
+# Access HTTPS URL
+https://<LOAD-BALANCER-IP>
+https://<LOAD-BALANCER-IP>/app1/index.html
+
+# Curl Test in a loop
+while true; do curl -k https://34.72.225.55/app1/index.html; sleep 1; done
+
+# Cloud Logging Query
+resource.type="gce_instance"
+(log_id("nginx_access") OR log_id("nginx_error"))
+
+# Cloud Monitoring
+Goto Cloud Monitoring -> Detect -> Uptime checks
+
+# Restart VMs
+Goto Compute Engine -> Instance Groups -> hr-dev-myapp1-mig -> Restart/replace VMs 
+
+# Alert Policy and Incidents
+Goto Cloud Monitoring -> Detect -> Alerting -> hr-dev-myapp1-lb-https-uptime-check
+1. Verify Incidents
+2. Verify Incident email: Alert firing
+3. Verify Incident email: Alert recovered
+Step-08: Review Nginx Metrics
+Go to Metrics Explorer -> Select Nginx Metrics for a VM Instance
+workload/nginx.connections_accepted
+workload.googleapis.com/nginx.connections_current
+workload.googleapis.com/nginx.connections_handled
+workload.googleapis.com/nginx.requests
+Important Note: Using Nginx stub_status module we are collecting and sending these metrics from Nginx to Cloud Monitoring
+Step-09: Clean-Up
+# Terraform Destroy
+terraform destroy -auto-approve
+
+
+Terraform Remote Backend
+==========================
+
+
+Backend: place where we store terraform files are called backend
+Terraform uses persisted state data to keep track of the resources it manages
+
+
+Backends Types
+==============
+
+Local Backends Types
+===================
+
+terraform working directory 
+
+
+Remote Backends Types
+=====================
+
+AWS S3
+Google Cloud storage (GCS)
+Azure Blob storage
+
+
+backend "ges" {
+bucket = "faltu-475655"
+prefix = "cloudsql/publicdb"  //path where this .tf should create bucket.
+
+}
+
+
+GCS(Google storage bucket)
+=========================
+-bucket should be pre-created and ready to use
+-Recommended to enable Object Versioning
+
+CloudSQL-PublicDB-TF-Remote-State/
+Directory actionsAdd file
+More options
+Latest commit
+stacksimplify
+stacksimplify
+Welcome to StackSimplify
+0bcd649
+ · 
+last month
+History
+Breadcrumbsterraform-on-google-cloud
+/22-CloudSQL-PublicDB-TF-Remote-State/
+Folders and files
+Name	Last commit message	Last commit date
+parent directory
+..
+p1-cloudsql-publicdb
+Welcome to StackSimplify
+last month
+README.md
+Welcome to StackSimplify
+last month
+README.md
+title	description
+GCP Google Cloud Platform - CloudSQL Public Database
+Learn to implement CloudSQL Public Database using Terraform on Google Cloud Platform
+Step-00: Introduction
+Cloud SQL Database with Public Endpoint
+Step-01: Create Cloud Storage Bucket to Store Terraform State files
+Name your bucket: gcplearn9-tfstate
+Choose where to store your data:
+Region: us-central1
+Choose a storage class for your data:
+Set a default class: Standard
+Choose how to control access to objects:
+Prevent public access: Enforce public access prevention on this bucket
+Access control: uniform
+Choose how to protect object data:
+Soft Delete: leave to defaults
+Object versioning: 90
+Expire noncurrent versions after: 365
+Click on CREATE
+Step-02: c1-versions.tf
+Add the backend block which is a Google Cloud Storage bucket
+# Terraform Settings Block
+terraform {
+  required_version = ">= 1.8"
+  required_providers {
+    google = {
+      source = "hashicorp/google"
+      version = ">= 5.35.0"
+    }
+  }
+  backend "gcs" {
+    bucket = "gcplearn9-tfstate"
+    prefix = "cloudsql/publicdb"
+  }
+}
+Step-03: c2-01-variables.tf
+# Input Variables
+# GCP Project
+variable "gcp_project" {
+  description = "Project in which GCP Resources to be created"
+  type = string
+  default = "kdaida123"
+}
+
+# GCP Region
+variable "gcp_region1" {
+  description = "Region in which GCP Resources to be created"
+  type = string
+  default = "us-east1"
+}
+
+# Environment Variable
+variable "environment" {
+  description = "Environment Variable used as a prefix"
+  type = string
+  default = "dev"
+}
+
+# Business Division
+variable "business_divsion" {
+  description = "Business Division in the large organization this Infrastructure belongs"
+  type = string
+  default = "sap"
+}
+
+# Cloud SQL Database version
+variable "cloudsql_database_version" {
+  description = "Cloud SQL MySQL DB Database version"
+  type = string
+  default = "MYSQL_8_0"
+}
+Step-04: c2-02-local-values.tf
+# Define Local Values in Terraform
+locals {
+  owners = var.business_divsion
+  environment = var.environment
+  name = "${var.business_divsion}-${var.environment}"
+  #name = "${local.owners}-${local.environment}"
+  common_tags = {
+    owners = local.owners
+    environment = local.environment
+  }
+} 
+Step-05: c3-01-cloudsql.tf
+# Random DB Name suffix
+resource "random_id" "db_name_suffix" {
+  byte_length = 4
+}
+
+# Resource: Cloud SQL Database Instance
+resource "google_sql_database_instance" "mydbinstance" {
+  name             = "${local.name}-mysql-${random_id.db_name_suffix.hex}"
+  database_version = var.cloudsql_database_version
+  deletion_protection = false 
+  settings {
+    tier = "db-f1-micro"
+    edition = "ENTERPRISE"
+    availability_type = "ZONAL"
+    disk_autoresize = true
+    disk_autoresize_limit = 20
+    disk_size = 10
+    disk_type = "PD_SSD"
+    backup_configuration {
+      enabled = true
+      binary_log_enabled = true      
+    }
+    ip_configuration {
+      authorized_networks {
+        name = "allow-from-internet"
+        value = "0.0.0.0/0"
+      }
+    }
+  }
+}
+
+# Resource: Cloud SQL Database Schema
+resource "google_sql_database" "mydbschema" {
+  name     = "webappdb"
+  instance = google_sql_database_instance.mydbinstance.name
+}
+
+# Resource: Cloud SQL Database User
+resource "google_sql_user" "users" {
+  name     = "umsadmin"
+  instance = google_sql_database_instance.mydbinstance.name
+  host     = "%"
+  password = "dbpassword11"
+}
+Step-06: c3-02-cloudsql-outputs.tf
+output "cloudsql_db_public_ip" {
+  value = google_sql_database_instance.mydbinstance.public_ip_address
+}
+Step-07: terraform.tfvars
+gcp_project     = "gcplearn9"
+gcp_region1     = "us-central1"
+environment     = "dev"
+business_divsion = "hr"
+cloudsql_database_version = "MYSQL_8_0"
+Step-08: Execute Terraform Commands
+# Terraform Initialize
+terraform init
+
+# Terraform Validate
+terraform validate
+
+# Terraform Plan
+terraform plan
+
+# Terraform Apply
+terraform apply
+Step-13: Verify Cloud SQL Database
+Goto Cloud SQL -> hr-dev-mysql -> Cloud SQL Studio
+Database: webappdb
+User: umsadmin
+Password: dbpassword11
+Review the Cloud SQL Studio
+Step-14: Connect to MySQL DB from Cloud Shell
+# MySQL Commands
+mysql -h <DB-PUBLIC-IP> -u umsadmin -pdbpassword11
+mysql -h 35.224.97.113 -u umsadmin -pdbpassword11
+mysql> show schemas;
+
+
+deletion protection for db is true in terraform ( bydfault we cannot dlt db instance) using terraform destroy
+
+so to delete db we need to put 
+deletion protection = false for sql resource block
+
+random id : this generate random no's  so  while terraform applying terraform apply resources dont have same id like sql resource we can use that resource id to create some random number
+
+setting blocks : 
+
+setting {
+tier = "db-f1-micro"
+edition ="ENTERPRISE"
+availability_type = "ZONAL"
+disk_autoresize = true    //by default its true
+disk_autoresize_limi = 20  
+disk_size = 10
+disk_type = "PD_SSD"
+
+backup_configuration{
+     enabled = true
+     binary_enable_log = true
+}
+
+ip_configuration {
+
+ipv4_enabled     = false
+private_network  = google_compute_network.private_network
+enable_private_path_for_google_cloud_service = true
+
+{
+   authorized_network
+        {
+            name= " allow-from-internet
+            value= "0.0.0.0/0"
+                }
+}
+
+}
+
+
+}
+
+
+
+Terraform Remote State Datasource
+===================================
+Terraform_remote_state data source retrieves the root module output values from project-1 terraform configuration using the latest state snapshot from the remote backend
+
+
+Templatefile function :
+======================
+
+templatefile syntax is the same as for string template 
+
+it reads the files at given path and renders its content as a template using a supplied set of template variable
+
+ # Install Webserver
+  metadata_startup_script = templatefile("ums-install.tmpl",{cloudsql_db_endpoint = data.terraform_remote_state.cloudsql_publicdb.outputs.cloudsql_db_public_ip})      
+  labels = {
+    environment = local.environment
+  }
+  metadata = {
+    environment = local.environment
+  }
+  service_account {
+    # Google recommends custom service accounts that have cloud-platform scope and permissions granted via IAM Roles.
+    email  = google_service_account.myapp1.email
+    scopes = ["cloud-platform"]
+  }  
+}
+
+
+-DNS-to-DB-SelfSigned-CloudSQL-PublicDB/
+Directory actionsAdd file
+More options
+Latest commit
+stacksimplify
+stacksimplify
+Welcome to StackSimplify
+0bcd649
+ · 
+last month
+History
+Breadcrumbsterraform-on-google-cloud
+/23-DNS-to-DB-SelfSigned-CloudSQL-PublicDB/
+Folders and files
+Name	Last commit message	Last commit date
+parent directory
+..
+p1-cloudsql-publicdb
+Welcome to StackSimplify
+last month
+p2-https-lb-selfsignedssl
+Welcome to StackSimplify
+last month
+README.md
+Welcome to StackSimplify
+last month
+README.md
+title	description
+GCP Google Cloud Platform - Cloud Monitoring
+Learn to implement Cloud Monitoring using Terraform on Google Cloud Platform
+Step-01: Introduction
+Implement DNS to DB usecase (self-signed SSL)
+For students, who don't have their own registered Domains, you can use this demo.
+Instead of Cloud DNS for domain registration, we will use host entry in our local desktop (MAC/Linux: /etc/hosts, Windows: hosts file)
+This is a super big demo, lets do it step by step to succeed
+We are going to use Cloud SQL as Public DB (Public IP)
+Step-02: COPY from section 21-Regional-HTTPS-LB-Monitoring
+COPY from section 21-Regional-HTTPS-LB-Monitoring
+Terraform Manifests Folder: p2-https-lb-selfsignedssl
+Step-03: c11-remote-state-datasource.tf
+Discuss about Remote State datasource which will be used to
+# Terraform Remote State Datasource - Remote Backend GCP Cloud Storage Bucket
+data "terraform_remote_state" "cloudsql_publicdb" {
+  backend = "gcs"
+  config = {
+    bucket = "gcplearn9-tfstate"
+    prefix = "cloudsql/publicdb"
+  }
+}
+
+output "datasource_cloudsql_publicip" {
+  value = data.terraform_remote_state.cloudsql_publicdb.outputs.cloudsql_db_public_ip
+}
+Step-04: c1-versions.tf
+Configure Remote Backend as Google Cloud Storage bucket
+# Terraform Settings Block
+terraform {
+  required_version = ">= 1.9"
+  required_providers {
+    google = {
+      source = "hashicorp/google"
+      version = ">= 5.35.0"
+    }
+  }
+  backend "gcs" {
+    bucket = "gcplearn9-tfstate"
+    prefix = "myapp1/httpslb-selfsigned-publicdb"
+  }  
+}
+Step-05: c4-firewallrules.tf
+Add port 8080 for firewall rules
+# Firewall Rule: HTTP Port 80, 8080
+resource "google_compute_firewall" "fw_http" {
+  name = "${local.name}-fwrule-allow-http80"
+  allow {
+    ports    = ["80", "8080"]
+    protocol = "tcp"
+  }
+  direction     = "INGRESS"
+  network       = google_compute_network.myvpc.id 
+  priority      = 1000
+  source_ranges = ["0.0.0.0/0"]
+  target_tags   = ["webserver-tag"]
+}
+
+# Firewall rule: Allow Health checks
+resource "google_compute_firewall" "fw_health_checks" {
+  name    = "fwrule-allow-health-checks"
+  network = google_compute_network.myvpc.id 
+  allow {
+    protocol = "tcp"
+    ports    = ["80", "8080"]
+  }
+  source_ranges = [
+    "35.191.0.0/16",
+    "130.211.0.0/22"
+  ]
+  target_tags = ["allow-health-checks"]
+}
+Step-06: ums-install.tmpl
+Review ums-install.tmpl
+#! /bin/bash
+## SCRIPT-1: Deploy UserMgmt Application ###############
+# Step-1: Update package list
+sudo apt update
+
+# Step-2: Install telnet (For Troubelshooting)
+sudo apt install -y telnet
+
+# Step-3: Install MySQL Client (For Troubelshooting)
+sudo apt install -y default-mysql-client
+
+# Step-4: Create directory for the application
+mkdir -p /apps/usermgmt && cd /apps/usermgmt
+
+# Step-5: Download Open JDK 11 and Install
+wget https://aka.ms/download-jdk/microsoft-jdk-11.0.23-linux-x64.tar.gz -P /apps/usermgmt
+sudo tar -xzf microsoft-jdk-11.0.23-linux-x64.tar.gz
+sudo mv jdk-11.0.23+9 jdk11
+sudo update-alternatives --install /usr/bin/java java /apps/usermgmt/jdk11/bin/java 1
+sudo update-alternatives --install /usr/bin/javac javac /apps/usermgmt/jdk11/bin/javac 1
+
+# Step-6: Download the application WAR file
+wget https://github.com/stacksimplify/temp1/releases/download/1.0.0/usermgmt-webapp.war -P /apps/usermgmt 
+
+# Step-7: Set environment variables for the database
+export DB_HOSTNAME=${cloudsql_db_endpoint}
+export DB_PORT=3306
+export DB_NAME=webappdb
+export DB_USERNAME=umsadmin
+export DB_PASSWORD=dbpassword11
+
+# Step-8: Run the application
+java -jar /apps/usermgmt/usermgmt-webapp.war > /apps/usermgmt/ums-start.log &
+
+# Step-9: Wait to ensure the webserver setup has completed
+sleep 20
+
+## SCRIPT-2: OPS Agent steps ###############
+# Step-1: Install Ops Agent
+curl -sSO https://dl.google.com/cloudagents/add-google-cloud-ops-agent-repo.sh
+sudo bash add-google-cloud-ops-agent-repo.sh --also-install
+
+# Step-2: Backup existing config.yaml file
+sudo cp /etc/google-cloud-ops-agent/config.yaml /etc/google-cloud-ops-agent/config.yaml.bak
+
+# Step-3: Write the Ops Agent configuration for Nginx logs
+sudo tee /etc/google-cloud-ops-agent/config.yaml > /dev/null << EOF
+logging:
+  receivers:
+    ums_log:
+      type: files
+      include_paths:
+        - /apps/usermgmt/ums-start.log
+  service:
+    pipelines:
+      default_pipeline:
+        receivers: [ums_log]
+EOF
+
+# Step-4: Restart the Ops Agent to apply the new configuration
+sudo service google-cloud-ops-agent restart
+Step-07: c6-01-app1-instance-template.tf
+Update metadata_startup_script with ums-install.tmpl and also pass Cloud SQL DB IP address
+Terraform Template File Function concept
+# Google Compute Engine: Regional Instance Template
+resource "google_compute_region_instance_template" "myapp1" {
+  name        = "${local.name}-myapp1-template"
+  description = "This template is used to create MyApp1 server instances."
+  tags        = [tolist(google_compute_firewall.fw_ssh.target_tags)[0], tolist(google_compute_firewall.fw_http.target_tags)[0], tolist(google_compute_firewall.fw_health_checks.target_tags)[0]]
+  instance_description = "MyApp1 VM Instances"
+  machine_type         = var.machine_type
+  scheduling {
+    automatic_restart   = true
+    on_host_maintenance = "MIGRATE"
+  }
+  # Create a new boot disk from an image
+  disk {
+    #source_image      = "debian-cloud/debian-12"
+    source_image      = data.google_compute_image.my_image.self_link
+    auto_delete       = true
+    boot              = true
+  }
+  # Network Info
+  network_interface {
+    subnetwork = google_compute_subnetwork.mysubnet.id 
+    /*access_config {
+      # Include this section to give the VM an external IP address
+    } */ 
+  }
+  # Install Webserver
+  metadata_startup_script = templatefile("ums-install.tmpl",{cloudsql_db_endpoint = data.terraform_remote_state.cloudsql_publicdb.outputs.cloudsql_db_public_ip})      
+  labels = {
+    environment = local.environment
+  }
+  metadata = {
+    environment = local.environment
+  }
+  service_account {
+    # Google recommends custom service accounts that have cloud-platform scope and permissions granted via IAM Roles.
+    email  = google_service_account.myapp1.email
+    scopes = ["cloud-platform"]
+  }  
+}
+Step-08: c6-02-app1-mig-healthcheck.tf
+Update health check intervals, request_path and port
+# Resource: Regional Health Check
+resource "google_compute_region_health_check" "myapp1" {
+  name                = "${local.name}-myapp1"
+  check_interval_sec  = 20
+  timeout_sec         = 10
+  healthy_threshold   = 3
+  unhealthy_threshold = 3
+  http_health_check {
+    request_path = "/login"
+    port         = 8080
+  }
+}
+Step-09: c6-03-app1-mig.tf
+Update named_port to appserver with value as 8080
+# Resource: Managed Instance Group
+resource "google_compute_region_instance_group_manager" "myapp1" {
+  depends_on = [ google_compute_router_nat.cloud_nat ]
+  name                       = "${local.name}-myapp1-mig"
+  base_instance_name         = "${local.name}-myapp1"
+  region                     = var.gcp_region1
+  distribution_policy_zones  = data.google_compute_zones.available.names
+  # Instance Template
+  version {
+    # V1 Version
+    instance_template = google_compute_region_instance_template.myapp1.id
+  }
+  # Named Port
+  named_port {
+    name = "appserver"
+    port = 8080
+  }
+  # Autosclaing
+  auto_healing_policies {
+    health_check      = google_compute_region_health_check.myapp1.id
+    initial_delay_sec = 300
+  }
+ 
+  # Update Policy
+  update_policy {
+    type                           = "PROACTIVE"
+    instance_redistribution_type   = "PROACTIVE"
+    minimal_action                 = "REPLACE"
+    most_disruptive_allowed_action = "REPLACE"
+    max_surge_fixed                = length(data.google_compute_zones.available.names)
+    max_unavailable_fixed          = length(data.google_compute_zones.available.names)
+    replacement_method             = "SUBSTITUTE"
+    # min_ready_sec                  = 50 #   (BETA Parameter)
+  } 
+}
+Step-10: c7-01-loadbalancer.tf
+Update health check intervals, request_path and port
+# Resource: Regional Health Check
+resource "google_compute_region_health_check" "mylb" {
+  name                = "${local.name}-mylb-myapp1-health-check"
+  check_interval_sec  = 20
+  timeout_sec         = 10
+  healthy_threshold   = 3
+  unhealthy_threshold = 3
+  http_health_check {
+    request_path = "/login"
+    port         = 8080
+  }
+}
+Step-11: c7-01-loadbalancer.tf
+Update port_name to appserver and also add session_affinity      = "GENERATED_COOKIE"
+Session affinity is needed to ensure Login session for application stick to that respective backend (VM Instance)
+# Resource: Regional Backend Service
+resource "google_compute_region_backend_service" "mylb" {
+  name                  = "${local.name}-myapp1-backend-service"
+  protocol              = "HTTP"
+  load_balancing_scheme = "EXTERNAL_MANAGED"
+  health_checks         = [google_compute_region_health_check.mylb.self_link]
+  port_name             = "appserver"
+  session_affinity      = "GENERATED_COOKIE"
+  backend {
+    group = google_compute_region_instance_group_manager.myapp1.instance_group
+    capacity_scaler = 1.0
+    balancing_mode = "UTILIZATION"
+  }
+}
+Step-12: c10-monitoring-uptime-checks.tf
+Update path = "/login" and content = "Username"
+# Resource: Uptime check
+resource "google_monitoring_uptime_check_config" "https" {
+  display_name = "${local.name}-myapp1-lb-https-uptime-check"
+  timeout = "60s"
+
+  http_check {
+    path = "/login"
+    port = "443"
+    use_ssl = true
+    #validate_ssl = true # We are using self-signed, so don't use this
+  }
+  monitored_resource {
+    type = "uptime_url"
+    labels = {
+      project_id = var.gcp_project # Provide Project ID here, my project name and ID is same used var.gcp_project
+      host = google_compute_address.mylb.address
+    }
+  }
+  content_matchers {
+    content = "Username"
+  }
+}
+Step-13: Execute Terraform Commands
+# Terraform Initialize
+terraform init
+
+# Terraform Validate
+terraform validate
+
+# Terraform Plan
+terraform plan
+
+# Terraform Apply
+terraform apply
+Step-14: Verify Resources
+Verify Load Balancer
+Verify Certificate Manager SSL Certificate
+Verify MIG
+Verify Service Account
+Verify Cloud Logging Logs
+Verify Cloud Monitoring - Uptime checks
+Verify Cloud Monitoring - Alert Policy
+Connect to VM Instance and verify logs
+# Connect to VM instance and verify logs
+1. SSH to vm
+2. cd /apps/usermgmt
+3. tail -100f /apps/usermgmt/ums-start.log
+
+# Add Host entry
+LOAD-BALANCER-IP app1.stacksimplify.com
+
+# Access HTTPS URL
+https://<LOAD-BALANCER-IP>
+[OR]
+https://app1.stacksimplify.com
+Username: admin101
+Password: password101
+
+## CREATE NEW USER IN APPLICATION
+Username: admin102
+Password: password102
+first name: fname102
+last name: lname102
+email: admin102@stacksimplify.com
+ssn: ssn102
+Click on **CREATE USER**
+
+## Login with new user
+https://<LOAD-BALANCER-IP>
+Username: admin102
+Password: password102
+
+## Verify the new user in Cloud SQL Database
+- Goto Cloud SQL -> hr-dev-mysql -> Cloud SQL Studio
+- **Database:** webappdb
+- **User:** umsadmin
+- **Password:** dbpassword11
+# SQL Query
+select * from user;
+
+# Cloud Logging
+resource.type="gce_instance"  log_id("ums_log") 
+
+# Cloud Monitoring
+Goto Cloud Monitoring -> Detect -> Uptime checks
+
+# Alert Policy and Incidents
+Goto Cloud Monitoring -> Detect -> Alerting -> hr-dev-myapp1-lb-https-uptime-check
+1. Verify Incidents (if any)
+Step-15: Clean-Up
+# Terraform Destroy
+terraform destroy -auto-approve
+
+
+templatefile
+
+# Install Webserver
+  metadata_startup_script = templatefile("ums-install.tmpl",{cloudsql_db_endpoint = data.terraform_remote_state.cloudsql_publicdb.outputs.cloudsql_db_public_ip})    
+
+
+in this it will load variable from data source (db public IP address) to variable cloudsql_db_endpoint and that will be used in ums-install.tmpl
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
